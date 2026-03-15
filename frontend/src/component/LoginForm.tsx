@@ -1,6 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIcon } from 'lucide-react'
+
+const ROLE_REDIRECT: Record<string, string> = {
+  admin:  '/dashboard',
+  staff:  '/dashboard',
+  viewer: '/dashboard',
+}
 
 const ROLES = [
   {
@@ -39,10 +45,15 @@ export default function LoginForm() {
   const [passFocus, setPassFocus] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  const navigate = useNavigate()
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => setLoading(false), 1800)
+    setTimeout(() => {
+      setLoading(false)
+      navigate(ROLE_REDIRECT[role])
+    }, 1200)
   }
 
   const inputStyle = (focused: boolean): React.CSSProperties => ({

@@ -74,3 +74,41 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ── Dashboard responsive ── */
+.sidebar-wrapper {
+  display: flex;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .tables-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar-menu-btn {
+    display: flex !important;
+  }
+  .profile-text {
+    display: none !important;
+  }
+  .sidebar-wrapper {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100vh;
+    z-index: 16;
+    transition: left 0.25s ease;
+  }
+  .sidebar-wrapper.sidebar-mobile-open {
+    left: 0;
+  }
+  .sidebar-overlay {
+    display: block !important;
+  }
+}
