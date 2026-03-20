@@ -6,6 +6,8 @@ import AdminDashboard from './pages/AdminDashboard'
 import BillingPage from './pages/BillingPage'
 import InventoryPage from './pages/InventoryPage'
 import CustomersPage from './pages/CustomersPage'
+import UserManagementPage from './pages/UserManagementPage'
+import ReportsPage from './pages/ReportsPage'
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="/dashboard/invoices" element={<BillingPage />} />
         <Route path="/dashboard/inventory" element={<InventoryPage />} />
         <Route path="/dashboard/customers" element={<CustomersPage />} />
+        <Route path="/dashboard/users" element={<UserManagementPage />} />
+        <Route path="/dashboard/reports" element={<ReportsPage />} />
         <Route path="/dashboard/*" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
