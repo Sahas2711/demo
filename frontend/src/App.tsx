@@ -4,6 +4,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminDashboard from './pages/AdminDashboard'
 import BillingPage from './pages/BillingPage'
+import InventoryPage from './pages/InventoryPage'
+import CustomersPage from './pages/CustomersPage'
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/dashboard/invoices" element={<BillingPage />} />
+        <Route path="/dashboard/inventory" element={<InventoryPage />} />
+        <Route path="/dashboard/customers" element={<CustomersPage />} />
         <Route path="/dashboard/*" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
