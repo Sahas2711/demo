@@ -60,9 +60,10 @@ These changes do NOT need a new version:
 
 ## Backward Compatibility Policy
 
-- Older API versions stay active after a new version is released
-- Existing clients continue to work without any changes on their end
-- No deployed frontend or third-party integration will break due to a version update
+- Older API versions remain available even after newer versions are released
+- Current clients can keep working without needing any updates
+- Frontend applications and third-party integrations will not be affected by version changes
+- Changes are introduced in a way that avoids breaking existing functionality
 
 ---
 
