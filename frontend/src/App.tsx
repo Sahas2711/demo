@@ -15,6 +15,7 @@ import StaffCustomersPage from './pages/staff/StaffCustomersPage'
 import StaffProductsPage from './pages/staff/StaffProductsPage'
 import ViewerDashboard from './pages/ViewerDashboard'
 import ViewerInvoicesPage from './pages/ViewerInvoicesPage'
+import AdminProfilePage from './pages/AdminProfilePage'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/dashboard/customers" element={<CustomersPage />} />
         <Route path="/dashboard/users" element={<UserManagementPage />} />
         <Route path="/dashboard/reports" element={<ReportsPage />} />
+        <Route path="/dashboard/profile" element={<AdminProfilePage />} />
         <Route path="/dashboard/*" element={<AdminDashboard />} />
 
         {/* Staff routes */}
