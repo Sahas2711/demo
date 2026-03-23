@@ -5,7 +5,7 @@ import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIco
 const ROLE_REDIRECT: Record<string, string> = {
   admin:  '/dashboard',
   staff:  '/staff',
-  viewer: '/dashboard',
+  viewer: '/viewer',
 }
 
 const ROLES = [

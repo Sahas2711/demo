@@ -116,4 +116,12 @@ body {
   .sidebar-overlay {
     display: block !important;
   }
+
+  /* Viewer invoices: hide table, show cards */
+  .viewer-table-wrap {
+    display: none !important;
+  }
+  .viewer-cards-wrap {
+    display: flex !important;
+  }
 }
