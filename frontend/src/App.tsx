@@ -14,6 +14,7 @@ import StaffInvoicesPage from './pages/staff/StaffInvoicesPage'
 import StaffCustomersPage from './pages/staff/StaffCustomersPage'
 import StaffProductsPage from './pages/staff/StaffProductsPage'
 import ViewerDashboard from './pages/ViewerDashboard'
+import ViewerInvoicesPage from './pages/ViewerInvoicesPage'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
 
         {/* Viewer routes */}
         <Route path="/viewer" element={<ViewerDashboard />} />
+        <Route path="/viewer/invoices" element={<ViewerInvoicesPage />} />
       </Routes>
     </BrowserRouter>
   )
