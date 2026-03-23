@@ -13,6 +13,7 @@ import StaffCreateInvoicePage from './pages/staff/StaffCreateInvoicePage'
 import StaffInvoicesPage from './pages/staff/StaffInvoicesPage'
 import StaffCustomersPage from './pages/staff/StaffCustomersPage'
 import StaffProductsPage from './pages/staff/StaffProductsPage'
+import ViewerDashboard from './pages/ViewerDashboard'
 
 function App() {
   return (
@@ -37,6 +38,9 @@ function App() {
         <Route path="/staff/invoices" element={<StaffInvoicesPage />} />
         <Route path="/staff/customers" element={<StaffCustomersPage />} />
         <Route path="/staff/products" element={<StaffProductsPage />} />
+
+        {/* Viewer routes */}
+        <Route path="/viewer" element={<ViewerDashboard />} />
       </Routes>
     </BrowserRouter>
   )
