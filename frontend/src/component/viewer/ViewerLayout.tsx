@@ -3,14 +3,15 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, BarChart2, LogOut,
   Package2, ChevronLeft, ChevronRight, Menu,
-  Search, Bell, ChevronDown, User, LogOut as LogOutIcon,
+  Search, Bell, ChevronDown, User, LogOut as LogOutIcon, Calculator,
 } from 'lucide-react'
 import { useRef, useEffect } from 'react'
 
 const NAV = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/viewer' },
-  { icon: FileText,        label: 'Invoices',  path: '/viewer/invoices' },
-  { icon: BarChart2,       label: 'Reports',   path: '/viewer/reports' },
+  { icon: LayoutDashboard, label: 'Dashboard',      path: '/viewer' },
+  { icon: FileText,        label: 'Invoices',        path: '/viewer/invoices' },
+  { icon: BarChart2,       label: 'Reports',         path: '/viewer/reports' },
+  { icon: Calculator,      label: 'GST Calculator',  path: '/viewer/gst-calculator' },
 ]
 
 function ViewerSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
