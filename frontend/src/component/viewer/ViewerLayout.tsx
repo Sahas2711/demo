@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, FileText, BarChart2, LogOut,
+  LayoutDashboard, FileText, BarChart2, LogOut, LineChart,
   Package2, ChevronLeft, ChevronRight, Menu,
   Search, Bell, ChevronDown, User, LogOut as LogOutIcon, Calculator,
 } from 'lucide-react'
@@ -11,6 +11,7 @@ const NAV = [
   { icon: LayoutDashboard, label: 'Dashboard',      path: '/viewer' },
   { icon: FileText,        label: 'Invoices',        path: '/viewer/invoices' },
   { icon: BarChart2,       label: 'Reports',         path: '/viewer/reports' },
+  { icon: LineChart,       label: 'Analytics',        path: '/viewer/analytics' },
   { icon: Calculator,      label: 'GST Calculator',  path: '/viewer/gst-calculator' },
 ]
 

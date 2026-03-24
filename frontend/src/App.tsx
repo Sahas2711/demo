@@ -17,6 +17,7 @@ import ViewerDashboard from './pages/ViewerDashboard'
 import ViewerInvoicesPage from './pages/ViewerInvoicesPage'
 import ViewerGSTCalculatorPage from './pages/ViewerGSTCalculatorPage'
 import ViewerReportsPage from './pages/ViewerReportsPage'
+import ViewerAnalyticsPage from './pages/ViewerAnalyticsPage'
 import AdminProfilePage from './pages/AdminProfilePage'
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
         <Route path="/viewer" element={<ViewerDashboard />} />
         <Route path="/viewer/invoices" element={<ViewerInvoicesPage />} />
         <Route path="/viewer/reports" element={<ViewerReportsPage />} />
+        <Route path="/viewer/analytics" element={<ViewerAnalyticsPage />} />
         <Route path="/viewer/gst-calculator" element={<ViewerGSTCalculatorPage />} />
       </Routes>
     </BrowserRouter>
