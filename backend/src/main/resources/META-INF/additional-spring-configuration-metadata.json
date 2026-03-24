@@ -1,0 +1,59 @@
+{
+  "properties": [
+    {
+      "name": "auth.jwt.secret",
+      "type": "java.lang.String",
+      "description": "JWT signing secret."
+    },
+    {
+      "name": "auth.jwt.access-token-expiry-minutes",
+      "type": "java.lang.Integer",
+      "description": "Access token lifetime in minutes."
+    },
+    {
+      "name": "auth.jwt.refresh-token-expiry-days",
+      "type": "java.lang.Integer",
+      "description": "Refresh token lifetime in days."
+    },
+    {
+      "name": "auth.cookie.secure",
+      "type": "java.lang.Boolean",
+      "description": "Whether auth cookies use Secure flag."
+    },
+    {
+      "name": "auth.cookie.same-site",
+      "type": "java.lang.String",
+      "description": "SameSite setting for auth cookies."
+    },
+    {
+      "name": "auth.account.max-failed-attempts",
+      "type": "java.lang.Integer",
+      "description": "Maximum failed login attempts before lock."
+    },
+    {
+      "name": "auth.account.lock-duration-minutes",
+      "type": "java.lang.Integer",
+      "description": "Account lock duration in minutes."
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "Comma-separated CORS allowed origins."
+    },
+    {
+      "name": "app.rate-limit.capacity",
+      "type": "java.lang.Integer",
+      "description": "Rate-limit bucket capacity per IP."
+    },
+    {
+      "name": "app.rate-limit.refill-tokens",
+      "type": "java.lang.Integer",
+      "description": "Tokens refilled each interval."
+    },
+    {
+      "name": "app.rate-limit.refill-minutes",
+      "type": "java.lang.Integer",
+      "description": "Refill interval in minutes."
+    }
+  ]
+}
