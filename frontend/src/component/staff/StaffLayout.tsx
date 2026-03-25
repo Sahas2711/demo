@@ -149,12 +149,12 @@ function StaffTopBar({ onMenuClick }: { onMenuClick: () => void }) {
               background: '#fff', borderRadius: 14, border: '1px solid #E7E9ED',
               boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflow: 'hidden', zIndex: 100,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderBottom: '1px solid #F5F6F8', fontSize: 14, color: '#1F2933', cursor: 'pointer' }}
+              <Link to="/staff/profile" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderBottom: '1px solid #F5F6F8', fontSize: 14, color: '#1F2933', textDecoration: 'none', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#F5F6F8'}
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 <User size={15} color="#4B5563" /> My Profile
-              </div>
+              </Link>
               <Link to="/login" style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px',
                 textDecoration: 'none', color: '#ef4444', fontSize: 14, transition: 'background 0.15s',
