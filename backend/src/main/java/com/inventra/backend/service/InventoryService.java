@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -28,13 +26,68 @@ import com.inventra.backend.util.InputSanitizer;
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryService {
-
-	@Autowired
+    @Autowired
     private final ProductRepository productRepository;
-	@Autowired
+      @Autowired  
+    private final CategoryRepository categoryRepository;
+       @Autowired 
     private final InputSanitizer inputSanitizer;
-	@Autowired
+       @Autowired 
     private final AuditLogService auditLogService;
+
+    @Transactional
+    public CategoryResponse createCategory(CategoryRequest request) {
+        String sanitizedName = inputSanitizer.sanitize(request.getName());
+        if (categoryRepository.existsByNameIgnoreCase(sanitizedName)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Category already exists");
+        }
+
+        Category category = Category.builder()
+            .name(sanitizedName)
+            .description(inputSanitizer.sanitize(request.getDescription()))
+                .build();
+        Category saved = categoryRepository.save(category);
+        auditLogService.log(AuditActionType.CREATE, "Category", saved.getId().toString(), null, null, "created");
+        log.info("Category created: id={}, name={}", saved.getId(), saved.getName());
+        return toCategoryResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> getCategories() {
+        return categoryRepository.findAll().stream().map(this::toCategoryResponse).toList();
+    }
+
+    @Transactional
+    public CategoryResponse updateCategory(UUID categoryId, CategoryRequest request) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+
+        String sanitizedName = inputSanitizer.sanitize(request.getName());
+        categoryRepository.findByNameIgnoreCase(sanitizedName).ifPresent(existing -> {
+            if (!existing.getId().equals(categoryId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Category already exists");
+            }
+        });
+
+        category.setName(sanitizedName);
+        category.setDescription(inputSanitizer.sanitize(request.getDescription()));
+        Category saved = categoryRepository.save(category);
+        auditLogService.log(AuditActionType.UPDATE, "Category", saved.getId().toString(), null, null, "updated");
+        log.info("Category updated: id={}", saved.getId());
+        return toCategoryResponse(saved);
+    }
+
+    @Transactional
+    public void deleteCategory(UUID categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        if (productRepository.existsByCategoryId(categoryId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete category with assigned products");
+        }
+        categoryRepository.delete(category);
+        auditLogService.log(AuditActionType.DELETE, "Category", category.getId().toString(), null, null, "deleted");
+        log.warn("Category deleted: id={}", category.getId());
+    }
 
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
@@ -109,42 +162,7 @@ public class InventoryService {
         log.warn("Product deactivated: id={}", product.getId());
     }
 
-    @Transactional
-    public ProductResponse adjustStock(UUID productId, StockAdjustmentRequest request) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
-
-        product.setQuantityAvailable(request.getQuantityAvailable());
-        if (request.getReorderLevel() != null) {
-            product.setReorderLevel(request.getReorderLevel());
-        }
-
-        Product saved = productRepository.save(product);
-        auditLogService.log(AuditActionType.UPDATE, "Product", saved.getId().toString(), null, null, "stock-adjusted");
-        log.info("Product stock adjusted: id={}, qty={}", saved.getId(), saved.getQuantityAvailable());
-        return toProductResponse(saved);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProductResponse> getLowStockProducts() {
-        return productRepository.findLowStockProducts().stream()
-                .map(this::toProductResponse)
-                .toList();
-    }
-
-    private void validateGstSlab(java.math.BigDecimal gst) {
-        if (gst == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "GST percentage is required");
-        }
-        boolean valid = gst.compareTo(java.math.BigDecimal.ZERO) == 0
-                || gst.compareTo(java.math.BigDecimal.valueOf(5)) == 0
-                || gst.compareTo(java.math.BigDecimal.valueOf(12)) == 0
-                || gst.compareTo(java.math.BigDecimal.valueOf(18)) == 0
-                || gst.compareTo(java.math.BigDecimal.valueOf(28)) == 0;
-        if (!valid) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid GST slab");
-        }
-    }
+    
 
     private ProductResponse toProductResponse(Product product) {
         return ProductResponse.builder()
@@ -158,10 +176,19 @@ public class InventoryService {
                 .reorderLevel(product.getReorderLevel())
                 .lowStock(product.getQuantityAvailable() <= product.getReorderLevel())
                 .active(product.isActive())
+                .category(toCategoryResponse(product.getCategory()))
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();
     }
 
-
+    private CategoryResponse toCategoryResponse(Category category) {
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
+    }
 }
