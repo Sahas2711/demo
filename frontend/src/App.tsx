@@ -21,6 +21,7 @@ import ViewerAnalyticsPage from './pages/ViewerAnalyticsPage'
 import ViewerProfilePage from './pages/ViewerProfilePage'
 import StaffProfilePage from './pages/staff/StaffProfilePage'
 import AdminProfilePage from './pages/AdminProfilePage'
+import AdminSettingsPage from './pages/AdminSettingsPage'
 
 function App() {
   return (
@@ -38,7 +39,7 @@ function App() {
         <Route path="/dashboard/users" element={<UserManagementPage />} />
         <Route path="/dashboard/reports" element={<ReportsPage />} />
         <Route path="/dashboard/profile" element={<AdminProfilePage />} />
-        <Route path="/dashboard/*" element={<AdminDashboard />} />
+        <Route path="/dashboard/settings" element={<AdminSettingsPage />} />
 
         {/* Staff routes */}
         <Route path="/staff" element={<StaffDashboardPage />} />
