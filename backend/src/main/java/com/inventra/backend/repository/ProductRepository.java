@@ -14,13 +14,13 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     Page<Product> findByCategoryId(UUID categoryId, Pageable pageable);
 
-        @Query("""
+    @Query("""
                         SELECT p FROM Product p
                         WHERE p.active = true
                             AND p.quantityAvailable <= p.reorderLevel
                         ORDER BY p.quantityAvailable ASC
                         """)
-        List<Product> findLowStockProducts();
+    List<Product> findLowStockProducts();
 
-        boolean existsByCategoryId(UUID categoryId);
+    boolean existsByCategoryId(UUID categoryId);
 }

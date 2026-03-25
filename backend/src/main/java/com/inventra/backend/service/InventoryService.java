@@ -26,13 +26,14 @@ import com.inventra.backend.util.InputSanitizer;
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryService {
+
     @Autowired
     private final ProductRepository productRepository;
-      @Autowired  
+    @Autowired   
     private final CategoryRepository categoryRepository;
-       @Autowired 
+    @Autowired
     private final InputSanitizer inputSanitizer;
-       @Autowired 
+    @Autowired
     private final AuditLogService auditLogService;
 
     @Transactional
@@ -162,7 +163,9 @@ public class InventoryService {
         log.warn("Product deactivated: id={}", product.getId());
     }
 
-    
+
+
+
 
     private ProductResponse toProductResponse(Product product) {
         return ProductResponse.builder()
