@@ -18,6 +18,8 @@ import ViewerInvoicesPage from './pages/ViewerInvoicesPage'
 import ViewerGSTCalculatorPage from './pages/ViewerGSTCalculatorPage'
 import ViewerReportsPage from './pages/ViewerReportsPage'
 import ViewerAnalyticsPage from './pages/ViewerAnalyticsPage'
+import ViewerProfilePage from './pages/ViewerProfilePage'
+import StaffProfilePage from './pages/staff/StaffProfilePage'
 import AdminProfilePage from './pages/AdminProfilePage'
 
 function App() {
@@ -44,6 +46,7 @@ function App() {
         <Route path="/staff/invoices" element={<StaffInvoicesPage />} />
         <Route path="/staff/customers" element={<StaffCustomersPage />} />
         <Route path="/staff/products" element={<StaffProductsPage />} />
+        <Route path="/staff/profile" element={<StaffProfilePage />} />
 
         {/* Viewer routes */}
         <Route path="/viewer" element={<ViewerDashboard />} />
@@ -51,6 +54,7 @@ function App() {
         <Route path="/viewer/reports" element={<ViewerReportsPage />} />
         <Route path="/viewer/analytics" element={<ViewerAnalyticsPage />} />
         <Route path="/viewer/gst-calculator" element={<ViewerGSTCalculatorPage />} />
+        <Route path="/viewer/profile" element={<ViewerProfilePage />} />
       </Routes>
     </BrowserRouter>
   )
