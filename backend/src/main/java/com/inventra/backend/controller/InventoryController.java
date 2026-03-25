@@ -31,60 +31,76 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class InventoryController {
 
-    @Autowired
     private final InventoryService inventoryService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PostMapping("/categories")
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.createCategory(request));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
     @GetMapping("/categories")
     public List<CategoryResponse> getCategories() {
         return inventoryService.getCategories();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PutMapping("/categories/{id}")
     public CategoryResponse updateCategory(@PathVariable UUID id, @Valid @RequestBody CategoryRequest request) {
         return inventoryService.updateCategory(id, request);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/categories/{id}")
     public MessageResponse deleteCategory(@PathVariable UUID id) {
         inventoryService.deleteCategory(id);
         return MessageResponse.builder().message("Category deleted successfully").build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PostMapping("/products")
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.createProduct(request));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
     @GetMapping("/products")
     public Page<ProductResponse> getProducts(Pageable pageable) {
         return inventoryService.getProducts(pageable);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
     @GetMapping("/products/{id}")
     public ProductResponse getProductById(@PathVariable UUID id) {
         return inventoryService.getProductById(id);
     }
 
-    @PutMapping("/products/{id}")
-    public ProductResponse updateProduct(@PathVariable UUID id, @Valid @RequestBody ProductRequest request) {
-        return inventoryService.updateProduct(id, request);
+   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+   @PutMapping("/products/{id}")
+    public ProductResponse updateProduct(@PathVariable UUID id,@Valid @RequestBody ProductRequest request) {
+    if (id == null) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product ID is required");
     }
+    log.info("Updating product: id={}", id);
 
+    return inventoryService.updateProduct(id, request);
+    }  
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/products/{id}")
     public MessageResponse deleteProduct(@PathVariable UUID id) {
         inventoryService.deleteProduct(id);
         return MessageResponse.builder().message("Product deactivated successfully").build();
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PutMapping("/inventory/{productId}")
     public ProductResponse adjustStock(@PathVariable UUID productId, @Valid @RequestBody StockAdjustmentRequest request) {
         return inventoryService.adjustStock(productId, request);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
     @GetMapping("/inventory")
     public List<ProductResponse> getInventory(@RequestParam(defaultValue = "false") boolean lowStock) {
         if (lowStock) {
@@ -93,5 +109,9 @@ public class InventoryController {
         return inventoryService.getProducts(Pageable.unpaged()).getContent();
     }
 
-    
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
+    @GetMapping("/inventory/low-stock")
+    public List<ProductResponse> lowStockProducts() {
+        return inventoryService.getLowStockProducts();
+    }
 }

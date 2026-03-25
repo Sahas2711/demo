@@ -25,7 +25,7 @@ public class ProductResponse {
     private Integer reorderLevel;
     private boolean lowStock;
     private boolean active;
-   // private CategoryResponse category;
+    private CategoryResponse category;
     private Instant createdAt;
     private Instant updatedAt;
 }
