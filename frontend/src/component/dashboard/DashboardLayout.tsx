@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F6F8', fontFamily: 'Poppins, Inter, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F6F8', fontFamily: 'Poppins, Inter, sans-serif' }} className="dashboard-main">
       {mobileOpen && (
         <div onClick={() => setMobileOpen(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 15 }}
