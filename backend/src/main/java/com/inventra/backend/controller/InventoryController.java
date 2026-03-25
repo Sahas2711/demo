@@ -76,11 +76,16 @@ public class InventoryController {
         return inventoryService.getProductById(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @PutMapping("/products/{id}")
-    public ProductResponse updateProduct(@PathVariable UUID id, @Valid @RequestBody ProductRequest request) {
-        return inventoryService.updateProduct(id, request);
+   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+   @PutMapping("/products/{id}")
+    public ProductResponse updateProduct(@PathVariable UUID id,@Valid @RequestBody ProductRequest request) {
+    if (id == null) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product ID is required");
     }
+    log.info("Updating product: id={}", id);
+
+    return inventoryService.updateProduct(id, request);
+    }  
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/products/{id}")
