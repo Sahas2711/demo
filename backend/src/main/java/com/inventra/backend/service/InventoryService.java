@@ -126,55 +126,32 @@ public class InventoryService {
         return toProductResponse(product);
     }
 
-   @Transactional
-public ProductResponse updateProduct(UUID productId, ProductRequest request) {
+    @Transactional
+    public ProductResponse updateProduct(UUID productId, ProductRequest request) {
+        validateGstSlab(request.getGstPercentage());
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
 
-    if (productId == null || request == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid request");
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+
+        product.setName(inputSanitizer.sanitize(request.getName()));
+        product.setDescription(inputSanitizer.sanitize(request.getDescription()));
+        product.setHsnCode(inputSanitizer.sanitize(request.getHsnCode()));
+        product.setUnitPrice(request.getUnitPrice());
+        product.setGstPercentage(request.getGstPercentage());
+        product.setQuantityAvailable(request.getQuantityAvailable());
+        product.setReorderLevel(request.getReorderLevel());
+        product.setCategory(category);
+        if (request.getActive() != null) {
+            product.setActive(request.getActive());
+        }
+
+        Product saved = productRepository.save(product);
+        auditLogService.log(AuditActionType.UPDATE, "Product", saved.getId().toString(), null, null, "updated");
+        log.info("Product updated: id={}", saved.getId());
+        return toProductResponse(saved);
     }
-
-    validateGstSlab(request.getGstPercentage());
-
-    Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
-
-    Category category = categoryRepository.findById(request.getCategoryId())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
-
-    // 🔹 Basic Validations
-    if (request.getName() == null || request.getName().trim().isEmpty()) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product name required");
-    }
-    if (request.getUnitPrice() != null && request.getUnitPrice().doubleValue() < 0) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid price");
-    }
-    if (request.getQuantityAvailable() != null && request.getQuantityAvailable() < 0) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid quantity");
-    }
-
-    // 🔹 Update fields
-    product.setName(inputSanitizer.sanitize(request.getName()));
-    product.setDescription(inputSanitizer.sanitize(request.getDescription()));
-    product.setHsnCode(inputSanitizer.sanitize(request.getHsnCode()));
-    product.setUnitPrice(request.getUnitPrice());
-    product.setGstPercentage(request.getGstPercentage());
-    product.setQuantityAvailable(request.getQuantityAvailable());
-    product.setReorderLevel(request.getReorderLevel());
-    product.setCategory(category);
-
-    if (request.getActive() != null) {
-        product.setActive(request.getActive());
-    }
-
-    Product saved = productRepository.save(product);
-
-    auditLogService.log(AuditActionType.UPDATE, "Product",
-            saved.getId().toString(), null, null, "updated");
-
-    log.info("Product updated: id={}", saved.getId());
-
-    return toProductResponse(saved);
-   }
 
     @Transactional
     public void deleteProduct(UUID productId) {
