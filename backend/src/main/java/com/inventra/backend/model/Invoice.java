@@ -89,7 +89,7 @@ public class Invoice extends BaseAuditableEntity {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
-    @OneToMany(mappedBy = "invoice")
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<InvoiceItem> items = new ArrayList<>();
 }
