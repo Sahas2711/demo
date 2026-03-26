@@ -4,18 +4,9 @@ import com.inventra.backend.dto.billing.InvoiceCreateRequest;
 import com.inventra.backend.dto.billing.InvoiceItemCreateRequest;
 import com.inventra.backend.dto.billing.InvoiceItemResponse;
 import com.inventra.backend.dto.billing.InvoiceResponse;
-import com.inventra.backend.model.AuditActionType;
-import com.inventra.backend.model.Customer;
-import com.inventra.backend.model.Invoice;
-import com.inventra.backend.model.InvoiceItem;
-import com.inventra.backend.model.InvoiceStatus;
-import com.inventra.backend.model.Product;
-import com.inventra.backend.model.User;
-import com.inventra.backend.repository.CustomerRepository;
-import com.inventra.backend.repository.InvoiceItemRepository;
-import com.inventra.backend.repository.InvoiceRepository;
-import com.inventra.backend.repository.ProductRepository;
-import com.inventra.backend.repository.UserRepository;
+import com.inventra.backend.model.*;
+import com.inventra.backend.repository.*;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -59,6 +50,7 @@ public class BillingService {
         }
 
         String invoiceNumber = generateInvoiceNumber();
+
         BigDecimal totalAmount = BigDecimal.ZERO;
         BigDecimal totalCgst = BigDecimal.ZERO;
         BigDecimal totalSgst = BigDecimal.ZERO;
@@ -66,7 +58,12 @@ public class BillingService {
 
         List<InvoiceItem> items = new ArrayList<>();
 
+        // 🔥 derive interstate (temporary assumption seller = MAHARASHTRA)
+        boolean isInterState = customer.getState() != null &&
+                !customer.getState().equalsIgnoreCase("MAHARASHTRA");
+
         for (InvoiceItemCreateRequest itemRequest : request.getItems()) {
+
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found: " + itemRequest.getProductId()));
 
@@ -76,25 +73,28 @@ public class BillingService {
 
             int requestedQty = itemRequest.getQuantity();
             if (product.getQuantityAvailable() < requestedQty) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Insufficient stock for product: " + product.getName()
-                );
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Insufficient stock for product: " + product.getName());
             }
 
-            BigDecimal unitPrice = itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : product.getUnitPrice();
-            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(requestedQty));
-            BigDecimal gst = lineTotal.multiply(product.getGstPercentage()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal unitPrice = itemRequest.getUnitPrice() != null
+                    ? itemRequest.getUnitPrice()
+                    : product.getUnitPrice();
 
-            if (request.isInterState()) {
-                totalIgst = totalIgst.add(gst);
-            } else {
-                BigDecimal halfGst = gst.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-                totalCgst = totalCgst.add(halfGst);
-                totalSgst = totalSgst.add(halfGst);
+            BigDecimal gstRate = product.getGstPercentage();
+
+            if (gstRate.compareTo(BigDecimal.ZERO) < 0 || gstRate.compareTo(BigDecimal.valueOf(100)) > 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Invalid GST rate for product: " + product.getName());
             }
 
-            totalAmount = totalAmount.add(lineTotal);
+            // 🔥 GST calculation via internal engine
+            GstResult gstResult = calculateGst(unitPrice, requestedQty, gstRate, isInterState);
+
+            totalAmount = totalAmount.add(gstResult.taxableAmount);
+            totalCgst = totalCgst.add(gstResult.cgst);
+            totalSgst = totalSgst.add(gstResult.sgst);
+            totalIgst = totalIgst.add(gstResult.igst);
 
             product.setQuantityAvailable(product.getQuantityAvailable() - requestedQty);
             productRepository.save(product);
@@ -103,13 +103,23 @@ public class BillingService {
                     .product(product)
                     .quantity(requestedQty)
                     .unitPrice(unitPrice)
-                    .gstPercentage(product.getGstPercentage())
-                    .totalPrice(lineTotal)
+                    .gstPercentage(gstRate)
+                    .totalPrice(gstResult.taxableAmount)
                     .build();
+
             items.add(item);
         }
 
-        BigDecimal grandTotal = totalAmount.add(totalCgst).add(totalSgst).add(totalIgst);
+        totalAmount = round(totalAmount);
+        totalCgst = round(totalCgst);
+        totalSgst = round(totalSgst);
+        totalIgst = round(totalIgst);
+
+        BigDecimal grandTotal = totalAmount
+                .add(totalCgst)
+                .add(totalSgst)
+                .add(totalIgst)
+                .setScale(2, RoundingMode.HALF_UP);
 
         Invoice invoice = Invoice.builder()
                 .invoiceNumber(invoiceNumber)
@@ -126,13 +136,62 @@ public class BillingService {
                 .build();
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
+
         items.forEach(i -> i.setInvoice(savedInvoice));
         List<InvoiceItem> savedItems = invoiceItemRepository.saveAll(items);
         savedInvoice.setItems(savedItems);
-        auditLogService.log(AuditActionType.CREATE, "Invoice", savedInvoice.getId().toString(), currentUser, null, "created");
-        log.info("Invoice created: id={}, invoiceNumber={}, customerId={}", savedInvoice.getId(), savedInvoice.getInvoiceNumber(), customer.getId());
+
+        auditLogService.log(AuditActionType.CREATE, "Invoice",
+                savedInvoice.getId().toString(), currentUser, null, "created");
+
+        log.info("Invoice created: id={}, invoiceNumber={}, customerId={}",
+                savedInvoice.getId(), savedInvoice.getInvoiceNumber(), customer.getId());
 
         return toInvoiceResponse(savedInvoice);
+    }
+
+    // 🔥 GST ENGINE
+    private GstResult calculateGst(BigDecimal unitPrice, int quantity,
+                                  BigDecimal gstRate, boolean isInterState) {
+
+        BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+
+        BigDecimal taxableAmount = lineTotal.setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal gstAmount = taxableAmount.multiply(gstRate)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        BigDecimal cgst = BigDecimal.ZERO;
+        BigDecimal sgst = BigDecimal.ZERO;
+        BigDecimal igst = BigDecimal.ZERO;
+
+        if (isInterState) {
+            igst = gstAmount;
+        } else {
+            cgst = gstAmount.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
+            sgst = gstAmount.subtract(cgst);
+        }
+
+        return new GstResult(taxableAmount, cgst, sgst, igst);
+    }
+
+    private static class GstResult {
+        BigDecimal taxableAmount;
+        BigDecimal cgst;
+        BigDecimal sgst;
+        BigDecimal igst;
+
+        GstResult(BigDecimal taxableAmount, BigDecimal cgst,
+                  BigDecimal sgst, BigDecimal igst) {
+            this.taxableAmount = taxableAmount;
+            this.cgst = cgst;
+            this.sgst = sgst;
+            this.igst = igst;
+        }
+    }
+
+    private BigDecimal round(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     @Transactional
@@ -141,10 +200,12 @@ public class BillingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found"));
 
         InvoiceStatus current = invoice.getStatus();
-        boolean validTransition = (current == InvoiceStatus.DRAFT && (targetStatus == InvoiceStatus.SENT || targetStatus == InvoiceStatus.CANCELLED))
-                || (current == InvoiceStatus.SENT && (targetStatus == InvoiceStatus.PAID || targetStatus == InvoiceStatus.CANCELLED))
-                || (current == InvoiceStatus.PAID && targetStatus == InvoiceStatus.PAID)
-                || (current == InvoiceStatus.CANCELLED && targetStatus == InvoiceStatus.CANCELLED);
+
+        boolean validTransition =
+                (current == InvoiceStatus.DRAFT && (targetStatus == InvoiceStatus.SENT || targetStatus == InvoiceStatus.CANCELLED))
+                        || (current == InvoiceStatus.SENT && (targetStatus == InvoiceStatus.PAID || targetStatus == InvoiceStatus.CANCELLED))
+                        || (current == InvoiceStatus.PAID && targetStatus == InvoiceStatus.PAID)
+                        || (current == InvoiceStatus.CANCELLED && targetStatus == InvoiceStatus.CANCELLED);
 
         if (!validTransition) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid invoice status transition");
@@ -152,8 +213,14 @@ public class BillingService {
 
         invoice.setStatus(targetStatus);
         Invoice saved = invoiceRepository.save(invoice);
-        auditLogService.log(AuditActionType.UPDATE, "Invoice", saved.getId().toString(), saved.getCreatedBy(), current.name(), targetStatus.name());
-        log.info("Invoice status updated: id={}, from={}, to={}", saved.getId(), current, targetStatus);
+
+        auditLogService.log(AuditActionType.UPDATE, "Invoice",
+                saved.getId().toString(), saved.getCreatedBy(),
+                current.name(), targetStatus.name());
+
+        log.info("Invoice status updated: id={}, from={}, to={}",
+                saved.getId(), current, targetStatus);
+
         return toInvoiceResponse(saved);
     }
 
@@ -173,6 +240,7 @@ public class BillingService {
         LocalDate now = LocalDate.now(ZoneOffset.UTC);
         String prefix = "INV-" + now.getYear() + "-";
         int attempts = 0;
+
         while (attempts < 10) {
             String candidate = prefix + String.format("%05d", (int) (Math.random() * 100000));
             if (!invoiceRepository.existsByInvoiceNumber(candidate)) {
@@ -180,21 +248,24 @@ public class BillingService {
             }
             attempts++;
         }
+
         return prefix + System.currentTimeMillis();
     }
 
     private InvoiceResponse toInvoiceResponse(Invoice invoice) {
-        List<InvoiceItemResponse> itemResponses = invoice.getItems() == null
-                ? List.of()
-                : invoice.getItems().stream().map(item -> InvoiceItemResponse.builder()
-                        .id(item.getId())
-                        .productId(item.getProduct().getId())
-                        .productName(item.getProduct().getName())
-                        .quantity(item.getQuantity())
-                        .unitPrice(item.getUnitPrice())
-                        .gstPercentage(item.getGstPercentage())
-                        .totalPrice(item.getTotalPrice())
-                        .build()).toList();
+        List<InvoiceItemResponse> itemResponses =
+                invoice.getItems() == null ? List.of() :
+                        invoice.getItems().stream().map(item ->
+                                InvoiceItemResponse.builder()
+                                        .id(item.getId())
+                                        .productId(item.getProduct().getId())
+                                        .productName(item.getProduct().getName())
+                                        .quantity(item.getQuantity())
+                                        .unitPrice(item.getUnitPrice())
+                                        .gstPercentage(item.getGstPercentage())
+                                        .totalPrice(item.getTotalPrice())
+                                        .build()
+                        ).toList();
 
         return InvoiceResponse.builder()
                 .id(invoice.getId())
