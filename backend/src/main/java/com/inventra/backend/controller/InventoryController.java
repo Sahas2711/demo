@@ -3,12 +3,10 @@ package com.inventra.backend.controller;
 import com.inventra.backend.dto.auth.MessageResponse;
 import com.inventra.backend.dto.inventory.CategoryRequest;
 import com.inventra.backend.dto.inventory.CategoryResponse;
-import com.inventra.backend.dto.inventory.LowStockAlertResponse;
 import com.inventra.backend.dto.inventory.ProductRequest;
 import com.inventra.backend.dto.inventory.ProductResponse;
 import com.inventra.backend.dto.inventory.StockAdjustmentRequest;
 import com.inventra.backend.service.InventoryService;
-import com.inventra.backend.service.LowStockAlertService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class InventoryController {
     private final InventoryService inventoryService;
-    private final LowStockAlertService lowStockAlertService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PostMapping("/categories")
@@ -92,9 +89,7 @@ public class InventoryController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
     @GetMapping("/inventory")
     public List<ProductResponse> getInventory(@RequestParam(defaultValue = "false") boolean lowStock) {
-        return lowStock
-                ? inventoryService.getLowStockProducts()
-                : inventoryService.getProducts(Pageable.unpaged()).getContent();
+        return lowStock ? inventoryService.getLowStockProducts() : inventoryService.getProducts(Pageable.unpaged()).getContent();
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
@@ -102,10 +97,5 @@ public class InventoryController {
     public List<ProductResponse> lowStockProducts() {
         return inventoryService.getLowStockProducts();
     }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'VIEWER')")
-    @GetMapping("/inventory/low-stock/alerts")
-    public List<LowStockAlertResponse> lowStockAlerts() {
-        return lowStockAlertService.getLowStockAlerts();
-    }
 }
+
