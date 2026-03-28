@@ -1,0 +1,68 @@
+version: "3.9"
+
+name: inventra-dev
+
+services:
+
+  backend:
+    image: maven:3.9.9-eclipse-temurin-17
+    working_dir: /workspace/backend
+    command: mvn spring-boot:run
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres:5432/inventra
+      DB_USERNAME: ${DB_USERNAME:-inventra}
+      DB_PASSWORD: ${DB_PASSWORD:-inventra}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173}
+    volumes:
+      - ../backend:/workspace/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - inventra-network
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /workspace/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_BASE_URL: http://backend:8080
+    volumes:
+      - ../frontend:/workspace/frontend
+    restart: unless-stopped
+    networks:
+      - inventra-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: inventra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventra
+      POSTGRES_USER: ${DB_USERNAME:-inventra}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-inventra}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-inventra} -d inventra"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - inventra-postgres:/var/lib/postgresql/data
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    networks:
+      - inventra-network
+
+networks:
+  inventra-network:
+    driver: bridge
+
+volumes:
+  inventra-postgres:
