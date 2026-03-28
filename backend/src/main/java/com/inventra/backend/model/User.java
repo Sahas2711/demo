@@ -77,4 +77,7 @@ public class User extends BaseAuditableEntity {
     @OneToMany(mappedBy = "performedBy")
     @Builder.Default
     private List<AuditLog> auditLogs = new ArrayList<>();
+
+    @Column(nullable = true)
+    private int tokenVersion;
 }
