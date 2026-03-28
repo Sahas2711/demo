@@ -1,31 +1,3 @@
-package com.inventra.backend.auth;
-
-import com.inventra.backend.dto.auth.LoginRequest;
-import com.inventra.backend.dto.auth.RegisterRequest;
-import com.inventra.backend.dto.auth.TokenResponse;
-import com.inventra.backend.model.*;
-import com.inventra.backend.repository.RefreshTokenRepository;
-import com.inventra.backend.repository.UserRepository;
-import com.inventra.backend.security.JwtService;
-import com.inventra.backend.service.AuditLogService;
-import com.inventra.backend.util.InputSanitizer;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.time.Duration;
-import java.time.Instant;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -49,7 +21,7 @@ public class AuthService {
     @Transactional
     public TokenResponse register(RegisterRequest request) {
 
-        String email = inputSanitizer.sanitize(request.getEmail()).toLowerCase();
+        String email = sanitize(request.getEmail());
 
         if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
@@ -62,7 +34,7 @@ public class AuthService {
         }
 
         User user = User.builder()
-                .name(inputSanitizer.sanitize(request.getName()))
+                .name(sanitize(request.getName()))
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(role)
@@ -74,16 +46,20 @@ public class AuthService {
 
         userRepository.save(user);
 
-        auditLogService.log(AuditActionType.CREATE, "User", user.getId().toString(), user, null, "registered");
+        auditLogService.log(AuditActionType.CREATE, "User",
+                user.getId().toString(), user, null, "registered");
 
-        return issueTokenPair(user, request.getDeviceId(), request.getIp(), request.getUserAgent());
+        return issueTokenPair(user,
+                safe(request.getDeviceId()),
+                safe(request.getIp()),
+                safe(request.getUserAgent()));
     }
 
     // ================= LOGIN =================
     @Transactional
     public TokenResponse login(LoginRequest request) {
 
-        String email = inputSanitizer.sanitize(request.getEmail()).toLowerCase();
+        String email = sanitize(request.getEmail());
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -91,6 +67,8 @@ public class AuthService {
         if (!user.isActive()) throw new DisabledException("Account inactive");
 
         if (isCurrentlyLocked(user)) {
+            auditLogService.log(AuditActionType.LOGIN, "User",
+                    user.getId().toString(), user, null, "account-locked");
             throw new LockedException("Account locked");
         }
 
@@ -100,14 +78,22 @@ public class AuthService {
             );
         } catch (BadCredentialsException ex) {
             registerFailedAttempt(user);
+
+            auditLogService.log(AuditActionType.LOGIN, "User",
+                    user.getId().toString(), user, null, "login-failed");
+
             throw ex;
         }
 
         resetFailedAttempts(user);
 
-        auditLogService.log(AuditActionType.LOGIN, "User", user.getId().toString(), user, null, "login-success");
+        auditLogService.log(AuditActionType.LOGIN, "User",
+                user.getId().toString(), user, null, "login-success");
 
-        return issueTokenPair(user, request.getDeviceId(), request.getIp(), request.getUserAgent());
+        return issueTokenPair(user,
+                safe(request.getDeviceId()),
+                safe(request.getIp()),
+                safe(request.getUserAgent()));
     }
 
     // ================= REFRESH TOKEN =================
@@ -118,40 +104,47 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing token");
         }
 
+        currentIp = safe(currentIp);
+        deviceId = safe(deviceId);
+
         RefreshToken token = refreshTokenRepository
                 .findByToken(refreshTokenValue)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
 
+        User user = token.getUser();
+
         // 🔥 REUSE DETECTION
         if (token.isRevoked()) {
-            revokeAllUserTokens(token.getUser());
+            revokeAllUserTokens(user);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token reuse detected");
         }
 
+        // ⏳ EXPIRY CHECK
         if (token.getExpiresAt().isBefore(Instant.now())) {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
         }
 
-        // 🔐 DEVICE/IP CHECK
-        if (!token.getIpAddress().equals(currentIp) || !token.getDeviceId().equals(deviceId)) {
+        // 🔐 DEVICE/IP CHECK (NULL SAFE)
+        if (!safe(token.getIpAddress()).equals(currentIp) ||
+            !safe(token.getDeviceId()).equals(deviceId)) {
+
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Device mismatch");
         }
 
-        User user = token.getUser();
-
+        // 🔑 JWT VALIDATION
         if (!jwtService.isTokenValid(refreshTokenValue, user, "REFRESH")) {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        // ROTATE TOKEN
+        // 🔄 ROTATE TOKEN
         token.setRevoked(true);
         refreshTokenRepository.save(token);
 
-        return issueTokenPair(user, deviceId, currentIp, token.getUserAgent());
+        return issueTokenPair(user, deviceId, currentIp, safe(token.getUserAgent()));
     }
 
     // ================= LOGOUT =================
@@ -182,9 +175,9 @@ public class AuthService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .token(refreshTokenValue)
                 .user(user)
-                .deviceId(deviceId)
-                .ipAddress(ip)
-                .userAgent(userAgent)
+                .deviceId(safe(deviceId))
+                .ipAddress(safe(ip))
+                .userAgent(safe(userAgent))
                 .expiresAt(jwtService.extractExpiration(refreshTokenValue))
                 .revoked(false)
                 .build();
@@ -205,15 +198,25 @@ public class AuthService {
                 .build();
     }
 
-    // ================= SECURITY HELPERS =================
+    // ================= HELPERS =================
+
+    private String sanitize(String input) {
+        return inputSanitizer.sanitize(input).toLowerCase();
+    }
+
+    private String safe(String input) {
+        return (input == null || input.isBlank()) ? "unknown" : input;
+    }
+
     private void revokeAllUserTokens(User user) {
         refreshTokenRepository.revokeAllByUser(user.getId());
     }
 
     private boolean isCurrentUserAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return auth != null && auth.isAuthenticated() &&
+                auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     private boolean isCurrentlyLocked(User user) {
@@ -248,6 +251,8 @@ public class AuthService {
     }
 
     private void resetFailedAttempts(User user) {
+
+        if (user.getFailedLoginAttempts() == 0 && !user.isAccountLocked()) return;
 
         user.setFailedLoginAttempts(0);
         user.setAccountLocked(false);
