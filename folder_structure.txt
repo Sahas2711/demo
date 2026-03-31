@@ -1,0 +1,299 @@
+Folder PATH listing for volume Sahas Programme
+Volume serial number is E688-5AE6
+E:.
+¦   API_Contract.md
+¦   CHANGELOG.md
+¦   Coding_Standards.md
+¦   CONTRIBUTING.md
+¦   folder_structure.txt
+¦   Inventory_Management_Schema.md
+¦   LICENSE
+¦   README.md
+¦   
++---.github
+¦   +---workflows
+¦           ci.yml
+¦           
++---api
+¦       openapi.yaml
+¦       
++---backend
+¦   ¦   .classpath
+¦   ¦   .gitattributes
+¦   ¦   .gitignore
+¦   ¦   .project
+¦   ¦   HELP.md
+¦   ¦   mvnw
+¦   ¦   mvnw.cmd
+¦   ¦   pom.xml
+¦   ¦   
+¦   +---.mvn
+¦   ¦   +---wrapper
+¦   ¦           maven-wrapper.properties
+¦   ¦           
+¦   +---src
+¦   ¦   +---main
+¦   ¦       +---java
+¦   ¦       ¦   +---com
+¦   ¦       ¦       +---inventra
+¦   ¦       ¦           +---backend
+¦   ¦       ¦               ¦   InventraBackendApplication.java
+¦   ¦       ¦               ¦   
+¦   ¦       ¦               +---auth
+¦   ¦       ¦               ¦       AuthController.java
+¦   ¦       ¦               ¦       AuthService.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---config
+¦   ¦       ¦               ¦       RequestTracingFilter.java
+¦   ¦       ¦               ¦       SecurityConfig.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---controller
+¦   ¦       ¦               ¦       BillingController.java
+¦   ¦       ¦               ¦       CustomerController.java
+¦   ¦       ¦               ¦       InventoryController.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---dto
+¦   ¦       ¦               ¦   +---auth
+¦   ¦       ¦               ¦   ¦       LoginRequest.java
+¦   ¦       ¦               ¦   ¦       MessageResponse.java
+¦   ¦       ¦               ¦   ¦       RegisterRequest.java
+¦   ¦       ¦               ¦   ¦       TokenResponse.java
+¦   ¦       ¦               ¦   ¦       
+¦   ¦       ¦               ¦   +---billing
+¦   ¦       ¦               ¦   ¦       InvoiceCreateRequest.java
+¦   ¦       ¦               ¦   ¦       InvoiceItemCreateRequest.java
+¦   ¦       ¦               ¦   ¦       InvoiceItemResponse.java
+¦   ¦       ¦               ¦   ¦       InvoiceResponse.java
+¦   ¦       ¦               ¦   ¦       UpdateInvoiceStatusRequest.java
+¦   ¦       ¦               ¦   ¦       
+¦   ¦       ¦               ¦   +---customer
+¦   ¦       ¦               ¦   ¦       CustomerRequest.java
+¦   ¦       ¦               ¦   ¦       CustomerResponse.java
+¦   ¦       ¦               ¦   ¦       
+¦   ¦       ¦               ¦   +---inventory
+¦   ¦       ¦               ¦           CategoryRequest.java
+¦   ¦       ¦               ¦           CategoryResponse.java
+¦   ¦       ¦               ¦           LowStockAlertResponse.java
+¦   ¦       ¦               ¦           ProductRequest.java
+¦   ¦       ¦               ¦           ProductResponse.java
+¦   ¦       ¦               ¦           StockAdjustmentRequest.java
+¦   ¦       ¦               ¦           
+¦   ¦       ¦               +---exception
+¦   ¦       ¦               ¦       ApiErrorResponse.java
+¦   ¦       ¦               ¦       GlobalExceptionHandler.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---model
+¦   ¦       ¦               ¦       AuditActionType.java
+¦   ¦       ¦               ¦       AuditLog.java
+¦   ¦       ¦               ¦       BaseAuditableEntity.java
+¦   ¦       ¦               ¦       Category.java
+¦   ¦       ¦               ¦       Customer.java
+¦   ¦       ¦               ¦       Invoice.java
+¦   ¦       ¦               ¦       InvoiceItem.java
+¦   ¦       ¦               ¦       InvoiceStatus.java
+¦   ¦       ¦               ¦       Product.java
+¦   ¦       ¦               ¦       RefreshToken.java
+¦   ¦       ¦               ¦       User.java
+¦   ¦       ¦               ¦       UserRole.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---repository
+¦   ¦       ¦               ¦       AuditLogRepository.java
+¦   ¦       ¦               ¦       CategoryRepository.java
+¦   ¦       ¦               ¦       CustomerRepository.java
+¦   ¦       ¦               ¦       InvoiceItemRepository.java
+¦   ¦       ¦               ¦       InvoiceRepository.java
+¦   ¦       ¦               ¦       ProductRepository.java
+¦   ¦       ¦               ¦       RefreshTokenRepository.java
+¦   ¦       ¦               ¦       UserRepository.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---security
+¦   ¦       ¦               ¦       CustomUserdetailsService.java
+¦   ¦       ¦               ¦       CustomUserPrincipal.java
+¦   ¦       ¦               ¦       JwtAuthenticationFilter.java
+¦   ¦       ¦               ¦       JwtService.java
+¦   ¦       ¦               ¦       RateLimitingFilter.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---service
+¦   ¦       ¦               ¦       AuditLogService.java
+¦   ¦       ¦               ¦       BillingService.java
+¦   ¦       ¦               ¦       CustomerService.java
+¦   ¦       ¦               ¦       InventoryService.java
+¦   ¦       ¦               ¦       LowStockAlertService.java
+¦   ¦       ¦               ¦       
+¦   ¦       ¦               +---util
+¦   ¦       ¦                       InputSanitizer.java
+¦   ¦       ¦                       
+¦   ¦       +---resources
+¦   ¦           ¦   application.properties
+¦   ¦           ¦   logback-spring.xml
+¦   ¦           ¦   
+¦   ¦           +---META-INF
+¦   ¦                   additional-spring-configuration-metadata.json
+¦   ¦                   
+¦   +---target
+¦       +---classes
+¦       +---generated-sources
+¦       ¦   +---annotations
+¦       +---generated-test-sources
+¦       ¦   +---test-annotations
+¦       +---test-classes
++---database
+¦       schema.sql
+¦       seed.sql
+¦       
++---diagrams
+¦       architecture_diag.png
+¦       ER diagram.png
+¦       
++---docker
+¦       backend.Dockerfile
+¦       docker-compose.yml
+¦       frontend.Dockerfile
+¦       
++---docs
+¦   ¦   api-versioning-strategy.md
+¦   ¦   billing-invoice-data-model.md
+¦   ¦   BRD.pdf
+¦   ¦   Charter_Document.pdf
+¦   ¦   ci-cd-pipeline.md
+¦   ¦   customer_management_schema.md
+¦   ¦   HLD.pdf
+¦   ¦   logging-monitoring-architecture.md
+¦   ¦   security-architecture.md
+¦   ¦   srs.pdf
+¦   ¦   SRSv1.pdf
+¦   ¦   
+¦   +---diagrams
+¦           architecture_diag.png
+¦           ER diagram.png
+¦           
++---frontend
+¦   ¦   .gitignore
+¦   ¦   eslint.config.js
+¦   ¦   index.html
+¦   ¦   package-lock.json
+¦   ¦   package.json
+¦   ¦   README.md
+¦   ¦   tsconfig.app.json
+¦   ¦   tsconfig.json
+¦   ¦   tsconfig.node.json
+¦   ¦   vite.config.ts
+¦   ¦   
+¦   +---public
+¦   ¦       favicon.svg
+¦   ¦       icons.svg
+¦   ¦       
+¦   +---src
+¦       ¦   App.css
+¦       ¦   App.tsx
+¦       ¦   index.css
+¦       ¦   main.tsx
+¦       ¦   
+¦       +---assets
+¦       ¦       hero.png
+¦       ¦       react.svg
+¦       ¦       vite.svg
+¦       ¦       
+¦       +---component
+¦       ¦   ¦   CTA.tsx
+¦       ¦   ¦   DashboardPreview.tsx
+¦       ¦   ¦   Features.tsx
+¦       ¦   ¦   Footer.tsx
+¦       ¦   ¦   Hero.tsx
+¦       ¦   ¦   LoginBrand.tsx
+¦       ¦   ¦   LoginForm.tsx
+¦       ¦   ¦   Navbar.tsx
+¦       ¦   ¦   RegisterBrand.tsx
+¦       ¦   ¦   RegisterForm.tsx
+¦       ¦   ¦   
+¦       ¦   +---billing
+¦       ¦   ¦       CreateInvoiceModal.tsx
+¦       ¦   ¦       InvoiceDetailModal.tsx
+¦       ¦   ¦       InvoiceSummaryCards.tsx
+¦       ¦   ¦       InvoiceTable.tsx
+¦       ¦   ¦       
+¦       ¦   +---customers
+¦       ¦   ¦       customerData.ts
+¦       ¦   ¦       CustomerDetailPanel.tsx
+¦       ¦   ¦       CustomerModal.tsx
+¦       ¦   ¦       CustomerSummaryCards.tsx
+¦       ¦   ¦       CustomerTable.tsx
+¦       ¦   ¦       
+¦       ¦   +---dashboard
+¦       ¦   ¦       DashboardLayout.tsx
+¦       ¦   ¦       InventoryTable.tsx
+¦       ¦   ¦       QuickActions.tsx
+¦       ¦   ¦       RecentInvoices.tsx
+¦       ¦   ¦       SalesChart.tsx
+¦       ¦   ¦       Sidebar.tsx
+¦       ¦   ¦       StatsCards.tsx
+¦       ¦   ¦       TopBar.tsx
+¦       ¦   ¦       
+¦       ¦   +---inventory
+¦       ¦   ¦       inventoryData.ts
+¦       ¦   ¦       InventorySummaryCards.tsx
+¦       ¦   ¦       InventoryTableFull.tsx
+¦       ¦   ¦       ProductModal.tsx
+¦       ¦   ¦       
+¦       ¦   +---reports
+¦       ¦   ¦       reportsData.ts
+¦       ¦   ¦       
+¦       ¦   +---staff
+¦       ¦   ¦       StaffLayout.tsx
+¦       ¦   ¦       
+¦       ¦   +---users
+¦       ¦   ¦       userData.ts
+¦       ¦   ¦       UserModal.tsx
+¦       ¦   ¦       UserSummaryCards.tsx
+¦       ¦   ¦       UserTable.tsx
+¦       ¦   ¦       
+¦       ¦   +---viewer
+¦       ¦           ViewerLayout.tsx
+¦       ¦           
+¦       +---components
+¦       ¦   ¦   CTA.tsx
+¦       ¦   ¦   DashboardPreview.tsx
+¦       ¦   ¦   Features.tsx
+¦       ¦   ¦   Footer.tsx
+¦       ¦   ¦   Hero.tsx
+¦       ¦   ¦   LoginBrand.tsx
+¦       ¦   ¦   LoginForm.tsx
+¦       ¦   ¦   Navbar.tsx
+¦       ¦   ¦   RegisterBrand.tsx
+¦       ¦   ¦   RegisterForm.tsx
+¦       ¦   ¦   
+¦       ¦   +---dashboard
+¦       ¦           InventoryTable.tsx
+¦       ¦           QuickActions.tsx
+¦       ¦           RecentInvoices.tsx
+¦       ¦           SalesChart.tsx
+¦       ¦           Sidebar.tsx
+¦       ¦           StatsCards.tsx
+¦       ¦           TopBar.tsx
+¦       ¦           
+¦       +---pages
+¦           ¦   AdminDashboard.tsx
+¦           ¦   AdminProfilePage.tsx
+¦           ¦   BillingPage.tsx
+¦           ¦   CustomersPage.tsx
+¦           ¦   InventoryPage.tsx
+¦           ¦   LandingPage.tsx
+¦           ¦   LoginPage.tsx
+¦           ¦   RegisterPage.tsx
+¦           ¦   ReportsPage.tsx
+¦           ¦   UserManagementPage.tsx
+¦           ¦   ViewerDashboard.tsx
+¦           ¦   ViewerInvoicesPage.tsx
+¦           ¦   
+¦           +---staff
+¦                   StaffCreateInvoicePage.tsx
+¦                   StaffCustomersPage.tsx
+¦                   StaffDashboardPage.tsx
+¦                   StaffInvoicesPage.tsx
+¦                   StaffProductsPage.tsx
+¦                   
++---scripts
+        build.sh
+        deploy.sh
+        setup.ps1
+        
