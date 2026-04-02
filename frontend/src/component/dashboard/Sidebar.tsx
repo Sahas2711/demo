@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Package, Users, BarChart2,
   UserCog, Settings, LogOut, Package2, ChevronLeft, ChevronRight,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
   { icon: LayoutDashboard, label: 'Dashboard',       path: '/dashboard' },
@@ -19,6 +20,14 @@ interface Props { collapsed: boolean; onToggle: () => void }
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const { pathname } = useLocation()
+  const { logout, user } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <aside style={{
@@ -72,7 +81,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
       {/* Logout */}
       <div style={{ padding: '12px 8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <Link to="/login" style={{
+        <a href="#" onClick={handleLogout} style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '10px 14px', borderRadius: 10, textDecoration: 'none',
           color: 'rgba(255,255,255,0.65)', fontSize: 14, whiteSpace: 'nowrap',
@@ -83,7 +92,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         >
           <LogOut size={18} style={{ flexShrink: 0 }} />
           {!collapsed && 'Logout'}
-        </Link>
+        </a>
       </div>
 
       {/* Collapse toggle */}

@@ -1,4 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute'
+
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -20,32 +23,35 @@ import AdminProfilePage from './pages/AdminProfilePage'
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+      <AuthProvider>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
 
-        {/* Admin routes */}
-        <Route path="/dashboard" element={<AdminDashboard />} />
-        <Route path="/dashboard/invoices" element={<BillingPage />} />
-        <Route path="/dashboard/inventory" element={<InventoryPage />} />
-        <Route path="/dashboard/customers" element={<CustomersPage />} />
-        <Route path="/dashboard/users" element={<UserManagementPage />} />
-        <Route path="/dashboard/reports" element={<ReportsPage />} />
-        <Route path="/dashboard/profile" element={<AdminProfilePage />} />
-        <Route path="/dashboard/*" element={<AdminDashboard />} />
+          {/* Admin routes */}
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/invoices" element={<ProtectedRoute allowedRoles={['ADMIN']}><BillingPage /></ProtectedRoute>} />
+          <Route path="/dashboard/inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
+          <Route path="/dashboard/customers" element={<ProtectedRoute allowedRoles={['ADMIN']}><CustomersPage /></ProtectedRoute>} />
+          <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UserManagementPage /></ProtectedRoute>} />
+          <Route path="/dashboard/reports" element={<ProtectedRoute allowedRoles={['ADMIN']}><ReportsPage /></ProtectedRoute>} />
+          <Route path="/dashboard/profile" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminProfilePage /></ProtectedRoute>} />
+          <Route path="/dashboard/*" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
 
-        {/* Staff routes */}
-        <Route path="/staff" element={<StaffDashboardPage />} />
-        <Route path="/staff/create-invoice" element={<StaffCreateInvoicePage />} />
-        <Route path="/staff/invoices" element={<StaffInvoicesPage />} />
-        <Route path="/staff/customers" element={<StaffCustomersPage />} />
-        <Route path="/staff/products" element={<StaffProductsPage />} />
+          {/* Staff routes */}
+          <Route path="/staff" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffDashboardPage /></ProtectedRoute>} />
+          <Route path="/staff/create-invoice" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffCreateInvoicePage /></ProtectedRoute>} />
+          <Route path="/staff/invoices" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffInvoicesPage /></ProtectedRoute>} />
+          <Route path="/staff/customers" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffCustomersPage /></ProtectedRoute>} />
+          <Route path="/staff/products" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffProductsPage /></ProtectedRoute>} />
 
-        {/* Viewer routes */}
-        <Route path="/viewer" element={<ViewerDashboard />} />
-        <Route path="/viewer/invoices" element={<ViewerInvoicesPage />} />
-      </Routes>
+          {/* Viewer routes */}
+          <Route path="/viewer" element={<ProtectedRoute allowedRoles={['VIEWER']}><ViewerDashboard /></ProtectedRoute>} />
+          <Route path="/viewer/invoices" element={<ProtectedRoute allowedRoles={['VIEWER']}><ViewerInvoicesPage /></ProtectedRoute>} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FilePlus, FileText, Users, Package,
   LogOut, Package2, ChevronLeft, ChevronRight, Bell,
   ChevronDown, User, Menu, Search,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
   { icon: LayoutDashboard, label: 'Dashboard',       path: '/staff' },
@@ -16,6 +17,14 @@ const NAV = [
 
 function StaffSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { pathname } = useLocation()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    await logout()
+    navigate('/login', { replace: true })
+  }
   return (
     <aside style={{
       width: collapsed ? 68 : 240, minHeight: '100vh',
@@ -61,7 +70,7 @@ function StaffSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
       </nav>
 
       <div style={{ padding: '12px 8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <Link to="/login" style={{
+        <a href="#" onClick={handleLogout} style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '10px 14px', borderRadius: 10, textDecoration: 'none',
           color: 'rgba(255,255,255,0.65)', fontSize: 14, whiteSpace: 'nowrap', transition: 'all 0.15s',
@@ -71,7 +80,7 @@ function StaffSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
         >
           <LogOut size={18} style={{ flexShrink: 0 }} />
           {!collapsed && 'Logout'}
-        </Link>
+        </a>
       </div>
 
       <button onClick={onToggle} style={{
@@ -89,6 +98,15 @@ function StaffSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
 
 function StaffTopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const [dropOpen, setDropOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    setDropOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
   return (
     <header style={{
       height: 64, background: '#fff', borderBottom: '1px solid #E7E9ED',
@@ -134,11 +152,11 @@ function StaffTopBar({ onMenuClick }: { onMenuClick: () => void }) {
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
-              S
+              {user?.name?.charAt(0)?.toUpperCase() || 'S'}
             </div>
             <div className="profile-text">
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>Staff User</div>
-              <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>● Staff</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>{user?.name || 'Staff User'}</div>
+              <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>● {user?.role || 'Staff'}</div>
             </div>
             <ChevronDown size={14} color="#4B5563" className="profile-text" />
           </button>
@@ -155,7 +173,7 @@ function StaffTopBar({ onMenuClick }: { onMenuClick: () => void }) {
               >
                 <User size={15} color="#4B5563" /> My Profile
               </div>
-              <Link to="/login" style={{
+              <a href="#" onClick={handleLogout} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px',
                 textDecoration: 'none', color: '#ef4444', fontSize: 14, transition: 'background 0.15s',
               }}
@@ -163,7 +181,7 @@ function StaffTopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 <LogOut size={15} /> Logout
-              </Link>
+              </a>
             </div>
           )}
         </div>

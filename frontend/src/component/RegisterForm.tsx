@@ -1,33 +1,87 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Eye, EyeOff, Mail, Lock, User, Phone, Package,
   ShieldCheck, UserCheck, Eye as EyeIcon,
   Building2, MapPin, FileText, Users,
   BadgeCheck, Store, Settings2, Briefcase, LayoutDashboard,
+  AlertTriangle,
 } from 'lucide-react'
+import { useAuth, type UserRole } from '../context/AuthContext'
 
 const ROLES = [
-  { id: 'admin',  label: 'Admin',  desc: 'Shop owner',          icon: ShieldCheck, color: '#724B68', bg: 'rgba(114,75,104,0.08)' },
-  { id: 'staff',  label: 'Staff',  desc: 'Billing operator',    icon: UserCheck,   color: '#2563eb', bg: 'rgba(37,99,235,0.08)'  },
-  { id: 'viewer', label: 'Viewer', desc: 'Accountant / auditor', icon: EyeIcon,     color: '#059669', bg: 'rgba(5,150,105,0.08)'  },
+  { id: 'ADMIN',  label: 'Admin',  desc: 'Shop owner',          icon: ShieldCheck, color: '#724B68', bg: 'rgba(114,75,104,0.08)' },
+  { id: 'STAFF',  label: 'Staff',  desc: 'Billing operator',    icon: UserCheck,   color: '#2563eb', bg: 'rgba(37,99,235,0.08)'  },
+  { id: 'VIEWER', label: 'Viewer', desc: 'Accountant / auditor', icon: EyeIcon,     color: '#059669', bg: 'rgba(5,150,105,0.08)'  },
 ]
+
+const ROLE_REDIRECT: Record<string, string> = {
+  ADMIN:  '/dashboard',
+  STAFF:  '/staff',
+  VIEWER: '/viewer',
+}
 
 const PERMISSIONS = ['Create Invoices', 'Manage Customers', 'View Reports', 'Manage Inventory']
 
 export default function RegisterForm() {
-  const [role, setRole]         = useState('admin')
+  const [role, setRole]         = useState('ADMIN')
   const [showPass, setShowPass] = useState(false)
   const [showConf, setShowConf] = useState(false)
   const [agreed, setAgreed]     = useState(false)
   const [loading, setLoading]   = useState(false)
   const [focused, setFocused]   = useState<string | null>(null)
   const [perms, setPerms]       = useState<string[]>(['Create Invoices', 'Manage Customers'])
+  const [error, setError]       = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  // Form fields
+  const [name, setName]       = useState('')
+  const [email, setEmail]     = useState('')
+  const [password, setPassword]   = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const navigate = useNavigate()
+  const { register } = useAuth()
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError(null)
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
     setLoading(true)
-    setTimeout(() => setLoading(false), 1800)
+    try {
+      await register({
+        name,
+        email,
+        password,
+        role: role as UserRole,
+      })
+      // Redirect based on role
+      const stored = localStorage.getItem('user')
+      if (stored) {
+        const user = JSON.parse(stored)
+        navigate(ROLE_REDIRECT[user.role] || '/dashboard', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (err?.response?.status === 409 ? 'An account with this email already exists' :
+         err?.response?.status === 403 ? 'Only admin can assign elevated roles' :
+         'Registration failed. Please try again.')
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function togglePerm(p: string) {
@@ -58,9 +112,9 @@ export default function RegisterForm() {
 
   // Role-specific badge shown below role selector
   const roleBadgeText: Record<string, string> = {
-    admin:  '🛡️ Admin can manage products, inventory, reports, and users.',
-    staff:  '🧾 Staff can create invoices and manage customers.',
-    viewer: '👁️ Viewer has read-only access to reports and analytics.',
+    ADMIN:  '🛡️ Admin can manage products, inventory, reports, and users.',
+    STAFF:  '🧾 Staff can create invoices and manage customers.',
+    VIEWER: '👁️ Viewer has read-only access to reports and analytics.',
   }
 
   return (
@@ -86,6 +140,19 @@ export default function RegisterForm() {
           </h2>
           <p style={{ fontSize: 14, color: '#4B5563', margin: 0 }}>Sign up to start using Inventra.</p>
         </div>
+
+        {/* Error banner */}
+        {error && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 16px', borderRadius: 10, marginBottom: 16,
+            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+            animation: 'fadeInUp 0.3s ease both',
+          }}>
+            <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 500 }}>{error}</span>
+          </div>
+        )}
 
         {/* Role selector */}
         <div style={{ marginBottom: 16 }}>
@@ -139,6 +206,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <User size={15} color={ic('name')} style={is} />
                     <input type="text" required placeholder="John Doe"
+                      value={name} onChange={e => setName(e.target.value)}
                       onFocus={() => setFocused('name')} onBlur={() => setFocused(null)}
                       style={inp('name')} />
                   </div>
@@ -147,7 +215,7 @@ export default function RegisterForm() {
                   {lbl('Phone Number')}
                   <div style={{ position: 'relative' }}>
                     <Phone size={15} color={ic('phone')} style={is} />
-                    <input type="tel" required placeholder="+91 98765 43210"
+                    <input type="tel" placeholder="+91 98765 43210"
                       onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)}
                       style={inp('phone')} />
                   </div>
@@ -160,6 +228,7 @@ export default function RegisterForm() {
                 <div style={{ position: 'relative' }}>
                   <Mail size={15} color={ic('email')} style={is} />
                   <input type="email" required placeholder="you@company.com"
+                    value={email} onChange={e => setEmail(e.target.value)}
                     onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
                     style={inp('email')} />
                 </div>
@@ -172,6 +241,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} color={ic('pass')} style={is} />
                     <input type={showPass ? 'text' : 'password'} required placeholder="••••••••"
+                      value={password} onChange={e => setPassword(e.target.value)}
                       onFocus={() => setFocused('pass')} onBlur={() => setFocused(null)}
                       style={{ ...inp('pass'), paddingRight: 36 }} />
                     <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#9ca3af', display: 'flex' }}>
@@ -184,6 +254,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} color={ic('conf')} style={is} />
                     <input type={showConf ? 'text' : 'password'} required placeholder="••••••••"
+                      value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                       onFocus={() => setFocused('conf')} onBlur={() => setFocused(null)}
                       style={{ ...inp('conf'), paddingRight: 36 }} />
                     <button type="button" onClick={() => setShowConf(!showConf)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#9ca3af', display: 'flex' }}>
@@ -196,7 +267,7 @@ export default function RegisterForm() {
           </div>
 
           {/* ── ADMIN fields ── */}
-          {role === 'admin' && (
+          {role === 'ADMIN' && (
             <div style={{ borderTop: '1px solid #E7E9ED', paddingTop: 16, animation: 'fadeInUp 0.3s ease both' }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#724B68', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <ShieldCheck size={13} /> Business Information
@@ -207,7 +278,7 @@ export default function RegisterForm() {
                     {lbl('Business / Shop Name')}
                     <div style={{ position: 'relative' }}>
                       <Building2 size={15} color={ic('shopname')} style={is} />
-                      <input type="text" required placeholder="Sharma Traders"
+                      <input type="text" placeholder="Sharma Traders"
                         onFocus={() => setFocused('shopname')} onBlur={() => setFocused(null)}
                         style={inp('shopname')} />
                     </div>
@@ -226,7 +297,7 @@ export default function RegisterForm() {
                   {lbl('Shop Address')}
                   <div style={{ position: 'relative' }}>
                     <MapPin size={15} color={ic('addr')} style={is} />
-                    <input type="text" required placeholder="123, MG Road, Bengaluru"
+                    <input type="text" placeholder="123, MG Road, Bengaluru"
                       onFocus={() => setFocused('addr')} onBlur={() => setFocused(null)}
                       style={inp('addr')} />
                   </div>
@@ -235,7 +306,7 @@ export default function RegisterForm() {
                   {lbl('Number of Employees')}
                   <div style={{ position: 'relative' }}>
                     <Users size={15} color={ic('emp')} style={is} />
-                    <input type="number" required placeholder="e.g. 5" min={1}
+                    <input type="number" placeholder="e.g. 5" min={1}
                       onFocus={() => setFocused('emp')} onBlur={() => setFocused(null)}
                       style={inp('emp')} />
                   </div>
@@ -245,7 +316,7 @@ export default function RegisterForm() {
           )}
 
           {/* ── STAFF fields ── */}
-          {role === 'staff' && (
+          {role === 'STAFF' && (
             <div style={{ borderTop: '1px solid #E7E9ED', paddingTop: 16, animation: 'fadeInUp 0.3s ease both' }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <UserCheck size={13} /> Employment Details
@@ -256,7 +327,7 @@ export default function RegisterForm() {
                     {lbl('Employee ID')}
                     <div style={{ position: 'relative' }}>
                       <BadgeCheck size={15} color={ic('empid')} style={is} />
-                      <input type="text" required placeholder="EMP-001"
+                      <input type="text" placeholder="EMP-001"
                         onFocus={() => setFocused('empid')} onBlur={() => setFocused(null)}
                         style={inp('empid')} />
                     </div>
@@ -265,7 +336,7 @@ export default function RegisterForm() {
                     {lbl('Assigned Shop')}
                     <div style={{ position: 'relative' }}>
                       <Store size={15} color={ic('shop')} style={is} />
-                      <input type="text" required placeholder="Main Branch"
+                      <input type="text" placeholder="Main Branch"
                         onFocus={() => setFocused('shop')} onBlur={() => setFocused(null)}
                         style={inp('shop')} />
                     </div>
@@ -301,7 +372,7 @@ export default function RegisterForm() {
           )}
 
           {/* ── VIEWER fields ── */}
-          {role === 'viewer' && (
+          {role === 'VIEWER' && (
             <div style={{ borderTop: '1px solid #E7E9ED', paddingTop: 16, animation: 'fadeInUp 0.3s ease both' }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#059669', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LayoutDashboard size={13} /> Organisation Details
@@ -311,7 +382,7 @@ export default function RegisterForm() {
                   {lbl('Company Name')}
                   <div style={{ position: 'relative' }}>
                     <Briefcase size={15} color={ic('company')} style={is} />
-                    <input type="text" required placeholder="Acme Corp"
+                    <input type="text" placeholder="Acme Corp"
                       onFocus={() => setFocused('company')} onBlur={() => setFocused(null)}
                       style={inp('company')} />
                   </div>
@@ -320,7 +391,7 @@ export default function RegisterForm() {
                   {lbl('Department')}
                   <div style={{ position: 'relative' }}>
                     <LayoutDashboard size={15} color={ic('dept')} style={is} />
-                    <input type="text" required placeholder="Accounts / Audit"
+                    <input type="text" placeholder="Accounts / Audit"
                       onFocus={() => setFocused('dept')} onBlur={() => setFocused(null)}
                       style={inp('dept')} />
                   </div>

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIcon } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIcon, AlertTriangle } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ROLE_REDIRECT: Record<string, string> = {
-  admin:  '/dashboard',
-  staff:  '/staff',
-  viewer: '/viewer',
+  ADMIN:  '/dashboard',
+  STAFF:  '/staff',
+  VIEWER: '/viewer',
 }
 
 const ROLES = [
@@ -44,16 +45,38 @@ export default function LoginForm() {
   const [emailFocus, setEmailFocus] = useState(false)
   const [passFocus, setPassFocus] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const navigate = useNavigate()
+  const { login } = useAuth()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
+    setError(null)
+    try {
+      await login(email, password)
+      // After login, the user object is in context — redirect based on actual role from backend
+      const stored = localStorage.getItem('user')
+      if (stored) {
+        const user = JSON.parse(stored)
+        const target = ROLE_REDIRECT[user.role] || '/dashboard'
+        navigate(target, { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (err?.response?.status === 401 ? 'Invalid email or password' :
+         err?.response?.status === 423 ? 'Account is locked. Please try again later.' :
+         err?.response?.status === 403 ? 'Account is disabled' :
+         'Login failed. Please try again.')
+      setError(msg)
+    } finally {
       setLoading(false)
-      navigate(ROLE_REDIRECT[role])
-    }, 1200)
+    }
   }
 
   const inputStyle = (focused: boolean): React.CSSProperties => ({
@@ -107,7 +130,20 @@ export default function LoginForm() {
           </p>
         </div>
 
-        {/* Role selector */}
+        {/* Error banner */}
+        {error && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 16px', borderRadius: 10, marginBottom: 20,
+            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+            animation: 'fadeInUp 0.3s ease both',
+          }}>
+            <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 500 }}>{error}</span>
+          </div>
+        )}
+
+        {/* Role selector — informational only, backend determines actual role */}
         <div style={{ marginBottom: 24 }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: '#1F2933', margin: '0 0 10px' }}>
             Sign in as
@@ -243,7 +279,7 @@ export default function LoginForm() {
                 </svg>
                 Signing in...
               </>
-            ) : `Login as ${ROLES.find(r => r.id === role)?.label}`}
+            ) : 'Sign In'}
           </button>
         </form>
 

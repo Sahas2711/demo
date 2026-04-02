@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, BarChart2, LogOut,
   Package2, ChevronLeft, ChevronRight, Menu,
   Search, Bell, ChevronDown, User, LogOut as LogOutIcon,
 } from 'lucide-react'
 import { useRef, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/viewer' },
@@ -15,6 +16,14 @@ const NAV = [
 
 function ViewerSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { pathname } = useLocation()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    await logout()
+    navigate('/login', { replace: true })
+  }
   return (
     <aside style={{
       width: collapsed ? 68 : 240, minHeight: '100vh',
@@ -59,13 +68,13 @@ function ViewerSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: 
       </nav>
 
       <div style={{ padding: '12px 8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <Link to="/login" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, textDecoration: 'none', color: 'rgba(255,255,255,0.65)', fontSize: 14, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+        <a href="#" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, textDecoration: 'none', color: 'rgba(255,255,255,0.65)', fontSize: 14, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#fca5a5' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' }}
         >
           <LogOut size={18} style={{ flexShrink: 0 }} />
           {!collapsed && 'Logout'}
-        </Link>
+        </a>
       </div>
 
       <button onClick={onToggle} style={{ position: 'absolute', top: 72, right: -12, width: 24, height: 24, borderRadius: '50%', background: '#724B68', border: '2px solid #F5F6F8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', padding: 0, zIndex: 20 }}>
@@ -79,6 +88,15 @@ function ViewerTopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const [dropOpen, setDropOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    setDropOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     function h(e: MouseEvent) {
@@ -141,9 +159,9 @@ function ViewerTopBar({ onMenuClick }: { onMenuClick: () => void }) {
             onMouseEnter={e => e.currentTarget.style.background = '#F5F6F8'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>V</div>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>{user?.name?.charAt(0)?.toUpperCase() || 'V'}</div>
             <div style={{ textAlign: 'left' }} className="profile-text">
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>Viewer User</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>{user?.name || 'Viewer User'}</div>
               <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>Read Only</div>
             </div>
             <ChevronDown size={14} color="#4B5563" className="profile-text" />
@@ -153,12 +171,12 @@ function ViewerTopBar({ onMenuClick }: { onMenuClick: () => void }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderBottom: '1px solid #F5F6F8', color: '#1F2933', fontSize: 14 }}>
                 <User size={15} color="#4B5563" /> Profile
               </div>
-              <Link to="/login" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', textDecoration: 'none', color: '#ef4444', fontSize: 14, transition: 'background 0.15s' }}
+              <a href="#" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', textDecoration: 'none', color: '#ef4444', fontSize: 14, transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 <LogOutIcon size={15} /> Logout
-              </Link>
+              </a>
             </div>
           )}
         </div>

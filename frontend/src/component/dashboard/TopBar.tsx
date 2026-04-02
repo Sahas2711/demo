@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Search, Bell, ChevronDown, User, Settings, LogOut, Menu } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 interface Props { onMenuClick: () => void }
 
@@ -8,6 +9,15 @@ export default function TopBar({ onMenuClick }: Props) {
   const [dropOpen, setDropOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const dropRef = useRef<HTMLDivElement>(null)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault()
+    setDropOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -105,11 +115,11 @@ export default function TopBar({ onMenuClick }: Props) {
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#724B68', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
-              A
+              {user?.name?.charAt(0)?.toUpperCase() || 'A'}
             </div>
             <div style={{ textAlign: 'left' }} className="profile-text">
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>Admin User</div>
-              <div style={{ fontSize: 11, color: '#4B5563' }}>Administrator</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2933' }}>{user?.name || 'Admin User'}</div>
+              <div style={{ fontSize: 11, color: '#4B5563' }}>{user?.role || 'Administrator'}</div>
             </div>
             <ChevronDown size={14} color="#4B5563" className="profile-text" />
           </button>
@@ -135,7 +145,7 @@ export default function TopBar({ onMenuClick }: Props) {
                   <Icon size={15} color="#4B5563" /> {label}
                 </Link>
               ))}
-              <Link to="/login" style={{
+              <a href="#" onClick={handleLogout} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px',
                 textDecoration: 'none', color: '#ef4444', fontSize: 14, transition: 'background 0.15s',
               }}
@@ -143,7 +153,7 @@ export default function TopBar({ onMenuClick }: Props) {
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 <LogOut size={15} /> Logout
-              </Link>
+              </a>
             </div>
           )}
         </div>
