@@ -22,6 +22,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (data: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
+  refreshSession: () => Promise<boolean>
   isAuthenticated: boolean
   hasRole: (...roles: UserRole[]) => boolean
 }
@@ -70,6 +71,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ ...saved, loading: false })
   }, [])
 
+  // ── Multi-tab logout sync ──────────────────────────────────
+  // When another tab clears auth from localStorage, this tab
+  // should also reflect the logged-out state immediately.
+  useEffect(() => {
+    function handleStorageChange(e: StorageEvent) {
+      if (e.key === 'accessToken' && e.newValue === null) {
+        // Token was removed in another tab → sync logout here
+        setState({ user: null, accessToken: null, refreshToken: null, loading: false })
+      }
+      if (e.key === 'user' && e.newValue !== null) {
+        // User data updated in another tab (e.g. after token refresh) → sync
+        try {
+          const updatedUser = JSON.parse(e.newValue)
+          const token = localStorage.getItem('accessToken')
+          const rt = localStorage.getItem('refreshToken')
+          if (token) {
+            setState({ user: updatedUser, accessToken: token, refreshToken: rt, loading: false })
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
   // ---------- LOGIN ----------
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/v1/auth/login', { email, password })
@@ -112,9 +138,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { 'X-Refresh-Token': rt },
         })
       }
-    } catch { /* best-effort */ }
+    } catch {
+      // Best-effort: even if the backend call fails (network down,
+      // token already expired), we still clear local state so the
+      // user is logged out on the client side.
+    }
     clearAuth()
     setState({ user: null, accessToken: null, refreshToken: null, loading: false })
+  }, [])
+
+  // ---------- REFRESH SESSION ----------
+  // Manually trigger a token refresh. Returns true if successful.
+  // Useful for long-lived pages that want to proactively refresh
+  // before the token expires, rather than waiting for a 401.
+  const refreshSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const rt = localStorage.getItem('refreshToken')
+      if (!rt) return false
+
+      const res = await api.post('/v1/auth/refresh', null, {
+        headers: { 'X-Refresh-Token': rt },
+      })
+      const { accessToken, refreshToken: newRefresh, user } = res.data
+      const authUser: AuthUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as UserRole,
+      }
+      saveAuth(accessToken, newRefresh, authUser)
+      setState({ user: authUser, accessToken, refreshToken: newRefresh, loading: false })
+      return true
+    } catch {
+      // Refresh failed — session is dead
+      clearAuth()
+      setState({ user: null, accessToken: null, refreshToken: null, loading: false })
+      return false
+    }
   }, [])
 
   // ---------- Helpers ----------
@@ -125,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, isAuthenticated, hasRole }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refreshSession, isAuthenticated, hasRole }}>
       {children}
     </AuthContext.Provider>
   )

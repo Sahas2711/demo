@@ -3,16 +3,17 @@ import axios from "axios";
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true, // send httpOnly cookies set by backend
 });
 
-// Attach access token to every request
+// ── Request interceptor: attach Bearer token ─────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Flag to prevent multiple simultaneous refresh calls
+// ── Token refresh queue ──────────────────────────────────────
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -27,22 +28,36 @@ function processQueue(error: unknown, token: string | null = null) {
   failedQueue = [];
 }
 
-// Handle 401 — attempt token refresh, then clear session if that fails
+/** URLs that should never trigger a token refresh retry */
+const AUTH_URLS = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"];
+
+function isAuthUrl(url?: string): boolean {
+  if (!url) return false;
+  return AUTH_URLS.some((path) => url.includes(path));
+}
+
+/** Clear all auth data from localStorage */
+function clearStoredAuth() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+}
+
+// ── Response interceptor: auto-refresh on 401 ────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
-    // If the failed request is already a refresh or login/register call, don't retry
+    // ── 401 on a protected API call → attempt token refresh ──
     if (
-      error.response?.status === 401 &&
+      status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/auth/login") &&
-      !originalRequest.url?.includes("/auth/register") &&
-      !originalRequest.url?.includes("/auth/refresh")
+      !isAuthUrl(originalRequest.url)
     ) {
+      // If a refresh is already in progress, queue this request
       if (isRefreshing) {
-        // Queue subsequent requests while a refresh is in progress
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token: string) => {
@@ -59,8 +74,9 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) throw new Error("No refresh token");
+        if (!refreshToken) throw new Error("No refresh token available");
 
+        // Call refresh endpoint (use raw axios to avoid interceptor loop)
         const res = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL}/v1/auth/refresh`,
           null,
@@ -74,20 +90,22 @@ api.interceptors.response.use(
         );
 
         const { accessToken, refreshToken: newRefresh, user } = res.data;
+
+        // Persist new tokens
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", newRefresh);
-        localStorage.setItem("user", JSON.stringify(user));
+        if (user) localStorage.setItem("user", JSON.stringify(user));
 
+        // Resolve all queued requests with the new token
         processQueue(null, accessToken);
 
+        // Retry the original request
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Refresh failed — clear everything and redirect to login
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
+        // Refresh failed → session expired → redirect to login
+        clearStoredAuth();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
@@ -95,11 +113,16 @@ api.interceptors.response.use(
       }
     }
 
-    // Non-401 errors or already-retried requests
-    if (error.response?.status === 401) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
+    // ── 401 on auth URLs or already-retried → force logout ───
+    if (status === 401 && !isAuthUrl(originalRequest.url)) {
+      clearStoredAuth();
+      window.location.href = "/login";
+    }
+
+    // ── 403 Forbidden → user role doesn't match ──────────────
+    if (status === 403 && !isAuthUrl(originalRequest.url)) {
+      // Role mismatch or account disabled — redirect to login
+      clearStoredAuth();
       window.location.href = "/login";
     }
 
