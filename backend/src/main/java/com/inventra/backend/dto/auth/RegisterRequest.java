@@ -30,4 +30,8 @@ public class RegisterRequest {
     private String password;
 
     private UserRole role;
+
+    private String deviceId;
+    private String ip;
+    private String userAgent;
 }

@@ -53,4 +53,13 @@ public class RefreshToken extends BaseAuditableEntity {
 
     @Column(nullable = false)
     private boolean revoked;
+
+    @Column(name = "ip_address", length = 100)
+    private String ipAddress;
+
+    @Column(name = "device_id", length = 255)
+    private String deviceId;
+
+    @Column(name = "user_agent", length = 512)
+    private String userAgent;
 }

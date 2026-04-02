@@ -1,54 +1,63 @@
-public package com.inventra.backend.security;
+package com.inventra.backend.security;
 
 import com.inventra.backend.model.User;
-import java.util.Collection;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
+import com.inventra.backend.model.UserRole;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@RequiredArgsConstructor
+import java.util.Collection;
+import java.util.List;
+
 public class CustomUserPrincipal implements UserDetails {
 
-    private final User user;
+	@Autowired
+    private  User user;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+    public CustomUserPrincipal(User user) {
+        this.user = user;
     }
 
+    // 🔐 Authorities (roles)
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        UserRole role = user.getRole();
+
+        // Convert role to Spring Security format: ROLE_ADMIN, ROLE_USER etc.
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    // 🔑 Password (IMPORTANT: maps to passwordHash)
     @Override
     public String getPassword() {
         return user.getPasswordHash();
     }
 
+    // 👤 Username (you're using email)
     @Override
     public String getUsername() {
         return user.getEmail();
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    // ⏳ Account status checks
 
     @Override
-    public boolean isAccountNonLocked() {
-        return !user.isAccountLocked();
+    public boolean isAccountNonExpired() {
+        return true; // you are not handling expiry yet
     }
+
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return true; // can extend later
     }
 
-    @Override
-    public boolean isEnabled() {
-        return user.isActive();
+
+
+    // 🔥 Optional: expose full user if needed
+    public User getUser() {
+        return user;
     }
-}
-.
-============================== {
-    
 }

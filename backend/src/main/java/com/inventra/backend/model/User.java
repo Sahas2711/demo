@@ -1,6 +1,7 @@
 package com.inventra.backend.model;
 
 import jakarta.persistence.Column;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -80,4 +81,5 @@ public class User extends BaseAuditableEntity {
 
     @Column(nullable = true)
     private int tokenVersion;
+
 }

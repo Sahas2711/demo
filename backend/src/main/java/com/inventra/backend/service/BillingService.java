@@ -212,6 +212,16 @@ public class BillingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found"));
     }
 
+    @Transactional
+    public InvoiceResponse updateInvoiceStatus(UUID id, InvoiceStatus status) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found"));
+        invoice.setStatus(status);
+        Invoice saved = invoiceRepository.save(invoice);
+        log.info("Invoice status updated: id={}, status={}", saved.getId(), saved.getStatus());
+        return toInvoiceResponse(saved);
+    }
+
     private InvoiceResponse toInvoiceResponse(Invoice invoice) {
         List<InvoiceItemResponse> items = invoice.getItems().stream().map(i ->
                 InvoiceItemResponse.builder()

@@ -1,4 +1,4 @@
-public package com.inventra.backend.security;
+package com.inventra.backend.security;
 
 import com.inventra.backend.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,9 +21,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+
+	// @Autowired
     private final JwtService jwtService;
+	// @Autowired
     private final CustomUserDetailsService userDetailsService;
-    private final UserRepository userRepository;
+	// @Autowired
+	private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

@@ -1,2 +1,4 @@
 /target/
 application.properties
+/logs/
+/.settings/

@@ -27,13 +27,13 @@ import com.inventra.backend.util.InputSanitizer;
 @Slf4j
 public class InventoryService {
 
-    @Autowired
+    // @Autowired
     private final ProductRepository productRepository;
-    @Autowired   
+    // @Autowired   
     private final CategoryRepository categoryRepository;
-    @Autowired
+    // @Autowired
     private final InputSanitizer inputSanitizer;
-    @Autowired
+    // @Autowired
     private final AuditLogService auditLogService;
 
     @Transactional
@@ -163,9 +163,43 @@ public class InventoryService {
         log.warn("Product deactivated: id={}", product.getId());
     }
 
+    private void validateGstSlab(java.math.BigDecimal gstPercentage) {
+        if (gstPercentage == null) return;
+        java.util.Set<java.math.BigDecimal> validSlabs = java.util.Set.of(
+            java.math.BigDecimal.ZERO,
+            new java.math.BigDecimal("0.25"),
+            new java.math.BigDecimal("3"),
+            new java.math.BigDecimal("5"),
+            new java.math.BigDecimal("12"),
+            new java.math.BigDecimal("18"),
+            new java.math.BigDecimal("28")
+        );
+        boolean valid = validSlabs.stream().anyMatch(s -> s.compareTo(gstPercentage) == 0);
+        if (!valid) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid GST slab: " + gstPercentage);
+        }
+    }
 
+    @Transactional
+    public ProductResponse adjustStock(UUID productId, StockAdjustmentRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        if (request.getQuantityAvailable() != null) {
+            product.setQuantityAvailable(request.getQuantityAvailable());
+        }
+        if (request.getReorderLevel() != null) {
+            product.setReorderLevel(request.getReorderLevel());
+        }
+        Product saved = productRepository.save(product);
+        auditLogService.log(AuditActionType.UPDATE, "Product", saved.getId().toString(), null, null, "stock-adjusted");
+        log.info("Stock adjusted: id={}", saved.getId());
+        return toProductResponse(saved);
+    }
 
-
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getLowStockProducts() {
+        return productRepository.findLowStockProducts().stream().map(this::toProductResponse).toList();
+    }
 
     private ProductResponse toProductResponse(Product product) {
         return ProductResponse.builder()
