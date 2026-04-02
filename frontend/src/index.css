@@ -10,6 +10,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Dark theme ── */
+[data-theme='dark'] body {
+  background: #1a1625;
+  color: #e5e7eb;
+}
+[data-theme='dark'] .dashboard-main {
+  background: #1a1625 !important;
+}
+[data-theme='dark'] aside {
+  background: #2d1f2b !important;
+}
+[data-theme='dark'] header {
+  background: #231b2e !important;
+  border-bottom-color: #3a2d45 !important;
+}
+[data-theme='dark'] .dash-card {
+  background: #231b2e !important;
+  border-color: #3a2d45 !important;
+  color: #e5e7eb !important;
+}
+[data-theme='dark'] input,
+[data-theme='dark'] select {
+  background: #2d1f2b !important;
+  border-color: #3a2d45 !important;
+  color: #e5e7eb !important;
+}
+
 #root {
   width: 100%;
   max-width: 100%;
