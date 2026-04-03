@@ -1,18 +1,20 @@
 import { Package, AlertTriangle, Tag, IndianRupee } from 'lucide-react'
-import type { Product } from './inventoryData'
-import { LOW_STOCK_THRESHOLD } from './inventoryData'
+import type { Product, Category } from './inventoryData'
 
-interface Props { products: Product[] }
+interface Props {
+  products: Product[]
+  categories: Category[]
+}
 
-export default function InventorySummaryCards({ products }: Props) {
-  const lowStock   = products.filter(p => p.stock <= LOW_STOCK_THRESHOLD).length
-  const categories = new Set(products.map(p => p.category)).size
-  const totalValue = products.reduce((s, p) => s + p.price * p.stock, 0)
+export default function InventorySummaryCards({ products, categories }: Props) {
+  const activeProducts = products.filter(p => p.active)
+  const lowStock   = activeProducts.filter(p => p.lowStock).length
+  const totalValue = activeProducts.reduce((s, p) => s + p.unitPrice * p.quantityAvailable, 0)
 
   const CARDS = [
-    { label: 'Total Products',  value: products.length.toString(), sub: 'In catalogue',      icon: Package,       iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
-    { label: 'Low Stock Items', value: lowStock.toString(),         sub: 'Need restock',      icon: AlertTriangle, iconBg: 'rgba(239,68,68,0.1)',  iconColor: '#ef4444', subColor: '#ef4444' },
-    { label: 'Categories',      value: categories.toString(),       sub: 'Product types',     icon: Tag,           iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#4B5563' },
+    { label: 'Total Products',  value: activeProducts.length.toString(), sub: 'Active in catalogue', icon: Package,       iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
+    { label: 'Low Stock Items', value: lowStock.toString(),               sub: 'Need restock',       icon: AlertTriangle, iconBg: 'rgba(239,68,68,0.1)',  iconColor: '#ef4444', subColor: '#ef4444' },
+    { label: 'Categories',      value: categories.length.toString(),      sub: 'Product types',      icon: Tag,           iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#4B5563' },
     { label: 'Inventory Value', value: `₹${(totalValue/100000).toFixed(1)}L`, sub: 'Estimated stock value', icon: IndianRupee, iconBg: 'rgba(5,150,105,0.1)', iconColor: '#059669', subColor: '#059669' },
   ]
 
