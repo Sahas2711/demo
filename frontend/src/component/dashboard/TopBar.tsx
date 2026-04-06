@@ -2,12 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Bell, ChevronDown, User, Settings, LogOut, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import api from '../../api/axiosInstance'
 
+interface LowStockProduct { id: string; name: string; quantityAvailable: number }
 interface Props { onMenuClick: () => void }
 
 export default function TopBar({ onMenuClick }: Props) {
-  const [dropOpen, setDropOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
+  const [dropOpen, setDropOpen]       = useState(false)
+  const [notifOpen, setNotifOpen]     = useState(false)
+  const [lowStock, setLowStock]       = useState<LowStockProduct[]>([])
   const dropRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -19,6 +22,13 @@ export default function TopBar({ onMenuClick }: Props) {
     navigate('/login', { replace: true })
   }
 
+  // Fetch low stock alerts on mount
+  useEffect(() => {
+    api.get<LowStockProduct[]>('/v1/inventory/low-stock')
+      .then(res => setLowStock(res.data ?? []))
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
@@ -28,12 +38,6 @@ export default function TopBar({ onMenuClick }: Props) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-
-  const notifications = [
-    { text: '8 products are low on stock', time: '2m ago', dot: '#ef4444' },
-    { text: 'New invoice INV-1024 created', time: '15m ago', dot: '#724B68' },
-    { text: 'Monthly report is ready', time: '1h ago', dot: '#2563eb' },
-  ]
 
   return (
     <header style={{
@@ -76,7 +80,9 @@ export default function TopBar({ onMenuClick }: Props) {
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             <Bell size={20} />
-            <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: '#ef4444', border: '2px solid #fff' }} />
+            {lowStock.length > 0 && (
+              <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: '#ef4444', border: '2px solid #fff' }} />
+            )}
           </button>
 
           {notifOpen && (
@@ -85,21 +91,46 @@ export default function TopBar({ onMenuClick }: Props) {
               background: '#fff', borderRadius: 14, border: '1px solid #E7E9ED',
               boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflow: 'hidden', zIndex: 100,
             }}>
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #E7E9ED', fontWeight: 700, fontSize: 14, color: '#1F2933' }}>
-                Notifications
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #E7E9ED', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#1F2933' }}>Low Stock Alerts</span>
+                {lowStock.length > 0 && (
+                  <span style={{ fontSize: 11, background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
+                    {lowStock.length} items
+                  </span>
+                )}
               </div>
-              {notifications.map((n, i) => (
-                <div key={i} style={{ padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', borderBottom: i < notifications.length - 1 ? '1px solid #F5F6F8' : 'none', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F6F8'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-                >
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.dot, marginTop: 5, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 13, color: '#1F2933', fontWeight: 500 }}>{n.text}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{n.time}</div>
-                  </div>
+              {lowStock.length === 0 ? (
+                <div style={{ padding: '20px 16px', textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>
+                  ✅ All stock levels are healthy
                 </div>
-              ))}
+              ) : (
+                <>
+                  {lowStock.slice(0, 6).map((p, i) => (
+                    <div key={p.id} style={{ padding: '11px 16px', display: 'flex', gap: 10, alignItems: 'center', borderBottom: i < Math.min(lowStock.length, 6) - 1 ? '1px solid #F5F6F8' : 'none' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F5F6F8'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    >
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.quantityAvailable === 0 ? '#dc2626' : '#f97316', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, color: '#1F2933', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                        <div style={{ fontSize: 11, color: p.quantityAvailable === 0 ? '#dc2626' : '#f97316', marginTop: 1, fontWeight: 600 }}>
+                          {p.quantityAvailable === 0 ? 'Out of stock' : `${p.quantityAvailable} units left`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Link to="/dashboard/inventory" onClick={() => setNotifOpen(false)} style={{
+                    display: 'block', padding: '11px 16px', textAlign: 'center',
+                    fontSize: 13, fontWeight: 600, color: '#724B68', textDecoration: 'none',
+                    borderTop: '1px solid #F5F6F8', transition: 'background 0.15s',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fdf9fc'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  >
+                    View all in Inventory →
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>
