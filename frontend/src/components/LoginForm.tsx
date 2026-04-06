@@ -48,7 +48,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
-  const { login, user } = useAuth()
+  const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {

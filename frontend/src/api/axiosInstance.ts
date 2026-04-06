@@ -1,5 +1,6 @@
 import axios from "axios";
 import { extractApiError } from "./apiError";
+import { getMemoryToken, setMemoryTokenFromInterceptor } from "../context/AuthContext";
 
 // Global toast reference — set by ToastProvider after mount
 let _showToast: ((msg: string, type?: 'error' | 'success' | 'info') => void) | null = null
@@ -14,7 +15,7 @@ const api = axios.create({
 
 // ── Request interceptor: attach Bearer token ─────────────────
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = getMemoryToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -42,11 +43,11 @@ function isAuthUrl(url?: string): boolean {
   return AUTH_URLS.some((path) => url.includes(path));
 }
 
-/** Clear all auth data from localStorage */
+/** Clear all auth data */
 function clearStoredAuth() {
-  localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  setMemoryTokenFromInterceptor(null);
 }
 
 // ── Response interceptor: auto-refresh on 401 ────────────────
@@ -115,8 +116,8 @@ api.interceptors.response.use(
 
         const { accessToken, refreshToken: newRefresh, user } = res.data;
 
-        // Persist new tokens
-        localStorage.setItem("accessToken", accessToken);
+        // Keep accessToken in memory only; persist only refreshToken
+        setMemoryTokenFromInterceptor(accessToken);
         localStorage.setItem("refreshToken", newRefresh);
         if (user) localStorage.setItem("user", JSON.stringify(user));
 

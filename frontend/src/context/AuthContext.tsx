@@ -13,8 +13,8 @@ export interface AuthUser {
 
 interface AuthState {
   user: AuthUser | null
-  accessToken: string | null
-  refreshToken: string | null
+  accessToken: string | null   // kept in memory only — never written to localStorage
+  refreshToken: string | null  // persisted to localStorage for session restore
   loading: boolean
 }
 
@@ -36,60 +36,75 @@ export interface RegisterPayload {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-// ── Helper: persist / restore ────────────────────────────────
+// ── Storage helpers ───────────────────────────────────────────
+// accessToken is intentionally NOT written to localStorage (XSS mitigation).
+// Only the refreshToken and non-sensitive user metadata are persisted.
 function saveAuth(accessToken: string, refreshToken: string, user: AuthUser) {
-  localStorage.setItem('accessToken', accessToken)
   localStorage.setItem('refreshToken', refreshToken)
   localStorage.setItem('user', JSON.stringify(user))
+  // Keep accessToken in the module-level variable so axiosInstance can read it
+  // without going through localStorage.
+  setMemoryToken(accessToken)
 }
 
 function clearAuth() {
-  localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
+  setMemoryToken(null)
 }
 
-function loadAuth(): AuthState {
+function loadAuth(): Omit<AuthState, 'accessToken'> & { accessToken: null } {
   try {
-    const accessToken = localStorage.getItem('accessToken')
     const refreshToken = localStorage.getItem('refreshToken')
     const raw = localStorage.getItem('user')
-    if (accessToken && raw) {
-      return { user: JSON.parse(raw), accessToken, refreshToken, loading: false }
+    if (refreshToken && raw) {
+      return { user: JSON.parse(raw) as AuthUser, accessToken: null, refreshToken, loading: false }
     }
   } catch { /* corrupted storage — ignore */ }
   return { user: null, accessToken: null, refreshToken: null, loading: false }
 }
 
+// ── In-memory access token (module scope, not React state) ────
+// Avoids localStorage exposure while still being readable by axiosInstance.
+let _memoryToken: string | null = null
+export function getMemoryToken() { return _memoryToken }
+export function setMemoryTokenFromInterceptor(t: string | null) { _memoryToken = t }
+function setMemoryToken(t: string | null) { _memoryToken = t }
+
 // ── Provider ─────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, accessToken: null, refreshToken: null, loading: true })
 
-  // Hydrate from localStorage on mount
+  // Hydrate on mount: if a refreshToken exists, silently get a fresh accessToken.
+  // accessToken is never stored in localStorage, so we must refresh on every page load.
   useEffect(() => {
     const saved = loadAuth()
-    setState({ ...saved, loading: false })
+    if (saved.refreshToken) {
+      api.post('/v1/auth/refresh', null, {
+        headers: { 'X-Refresh-Token': saved.refreshToken },
+      }).then(res => {
+        const { accessToken, refreshToken: newRefresh, user } = res.data as {
+          accessToken: string; refreshToken: string
+          user: { id: string; name: string; email: string; role: UserRole }
+        }
+        const authUser: AuthUser = { id: String(user.id), name: user.name, email: user.email, role: user.role }
+        saveAuth(accessToken, newRefresh, authUser)
+        setState({ user: authUser, accessToken, refreshToken: newRefresh, loading: false })
+      }).catch(() => {
+        clearAuth()
+        setState({ user: null, accessToken: null, refreshToken: null, loading: false })
+      })
+    } else {
+      setState({ user: null, accessToken: null, refreshToken: null, loading: false })
+    }
   }, [])
 
   // ── Multi-tab logout sync ──────────────────────────────────
-  // When another tab clears auth from localStorage, this tab
-  // should also reflect the logged-out state immediately.
   useEffect(() => {
     function handleStorageChange(e: StorageEvent) {
-      if (e.key === 'accessToken' && e.newValue === null) {
-        // Token was removed in another tab → sync logout here
+      if (e.key === 'refreshToken' && e.newValue === null) {
+        setMemoryToken(null)
         setState({ user: null, accessToken: null, refreshToken: null, loading: false })
-      }
-      if (e.key === 'user' && e.newValue !== null) {
-        // User data updated in another tab (e.g. after token refresh) → sync
-        try {
-          const updatedUser = JSON.parse(e.newValue)
-          const token = localStorage.getItem('accessToken')
-          const rt = localStorage.getItem('refreshToken')
-          if (token) {
-            setState({ user: updatedUser, accessToken: token, refreshToken: rt, loading: false })
-          }
-        } catch { /* ignore parse errors */ }
       }
     }
     window.addEventListener('storage', handleStorageChange)
