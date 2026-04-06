@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useRef, useState, type FormEvent, type CSSProperties, type ReactElement } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Eye, EyeOff, Mail, Lock, User, Phone, Package,
   ShieldCheck, UserCheck, Eye as EyeIcon,
   Building2, MapPin, FileText, Users,
   BadgeCheck, Store, Settings2, Briefcase, LayoutDashboard,
 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ROLES = [
   { id: 'admin',  label: 'Admin',  desc: 'Shop owner',          icon: ShieldCheck, color: '#724B68', bg: 'rgba(114,75,104,0.08)' },
@@ -23,18 +24,48 @@ export default function RegisterForm() {
   const [loading, setLoading]   = useState(false)
   const [focused, setFocused]   = useState<string | null>(null)
   const [perms, setPerms]       = useState<string[]>(['Create Invoices', 'Manage Customers'])
+  const [error, setError]       = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  const navigate     = useNavigate()
+  const { register } = useAuth()
+
+  const nameRef  = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passRef  = useRef<HTMLInputElement>(null)
+  const confRef  = useRef<HTMLInputElement>(null)
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (passRef.current?.value !== confRef.current?.value) {
+      setError('Passwords do not match.')
+      return
+    }
     setLoading(true)
-    setTimeout(() => setLoading(false), 1800)
+    setError(null)
+    try {
+      await register({
+        name:     nameRef.current!.value,
+        email:    emailRef.current!.value,
+        password: passRef.current!.value,
+        role:     role.toUpperCase() as 'ADMIN' | 'STAFF' | 'VIEWER',
+      })
+      const ROLE_HOME: Record<string, string> = { ADMIN: '/dashboard', STAFF: '/staff', VIEWER: '/viewer' }
+      const stored = localStorage.getItem('user')
+      const registeredRole = stored ? (JSON.parse(stored) as { role: string }).role : 'ADMIN'
+      navigate(ROLE_HOME[registeredRole] ?? '/dashboard')
+    } catch (err: unknown) {
+      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(axiosMsg ?? 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   function togglePerm(p: string) {
     setPerms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
   }
 
-  const inp = (field: string, noIcon = false): React.CSSProperties => ({
+  const inp = (field: string, noIcon = false): CSSProperties => ({
     width: '100%',
     padding: `11px 14px 11px ${noIcon ? 14 : 40}px`,
     borderRadius: 8,
@@ -46,9 +77,9 @@ export default function RegisterForm() {
   })
 
   const ic = (f: string) => focused === f ? '#724B68' : '#9ca3af'
-  const is: React.CSSProperties = { position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }
+  const is: CSSProperties = { position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }
 
-  const lbl = (text: string, optional = false) => (
+  const lbl = (text: string, optional = false): ReactElement => (
     <label style={{ fontSize: 12, fontWeight: 600, color: '#1F2933', display: 'block', marginBottom: 5 }}>
       {text}{optional && <span style={{ color: '#9ca3af', fontWeight: 400 }}> (optional)</span>}
     </label>
@@ -127,6 +158,12 @@ export default function RegisterForm() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>
+              {error}
+            </div>
+          )}
+
           {/* ── Common fields ── */}
           <div style={{ borderTop: '1px solid #E7E9ED', paddingTop: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: '#4B5563', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Personal Information</p>
@@ -139,6 +176,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <User size={15} color={ic('name')} style={is} />
                     <input type="text" required placeholder="John Doe"
+                      ref={nameRef}
                       onFocus={() => setFocused('name')} onBlur={() => setFocused(null)}
                       style={inp('name')} />
                   </div>
@@ -160,6 +198,7 @@ export default function RegisterForm() {
                 <div style={{ position: 'relative' }}>
                   <Mail size={15} color={ic('email')} style={is} />
                   <input type="email" required placeholder="you@company.com"
+                    ref={emailRef}
                     onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
                     style={inp('email')} />
                 </div>
@@ -172,6 +211,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} color={ic('pass')} style={is} />
                     <input type={showPass ? 'text' : 'password'} required placeholder="••••••••"
+                      ref={passRef}
                       onFocus={() => setFocused('pass')} onBlur={() => setFocused(null)}
                       style={{ ...inp('pass'), paddingRight: 36 }} />
                     <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#9ca3af', display: 'flex' }}>
@@ -184,6 +224,7 @@ export default function RegisterForm() {
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} color={ic('conf')} style={is} />
                     <input type={showConf ? 'text' : 'password'} required placeholder="••••••••"
+                      ref={confRef}
                       onFocus={() => setFocused('conf')} onBlur={() => setFocused(null)}
                       style={{ ...inp('conf'), paddingRight: 36 }} />
                     <button type="button" onClick={() => setShowConf(!showConf)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#9ca3af', display: 'flex' }}>

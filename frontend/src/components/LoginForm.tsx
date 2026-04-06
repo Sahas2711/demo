@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, type FormEvent, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIcon } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ROLE_REDIRECT: Record<string, string> = {
-  admin:  '/dashboard',
-  staff:  '/dashboard',
-  viewer: '/dashboard',
+  ADMIN:  '/dashboard',
+  STAFF:  '/staff',
+  VIEWER: '/viewer',
 }
 
 const ROLES = [
@@ -46,17 +47,28 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
+  const { login, user } = useAuth()
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
+    setError(null)
+    try {
+      await login(email, password)
+      // user is updated in context after login; read from localStorage as fallback
+      const stored = localStorage.getItem('user')
+      const role = stored ? (JSON.parse(stored) as { role: string }).role : 'ADMIN'
+      navigate(ROLE_REDIRECT[role] ?? '/dashboard')
+    } catch (err: unknown) {
+      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(axiosMsg ?? 'Invalid credentials. Please try again.')
+    } finally {
       setLoading(false)
-      navigate(ROLE_REDIRECT[role])
-    }, 1200)
+    }
   }
 
-  const inputStyle = (focused: boolean): React.CSSProperties => ({
+  const inputStyle = (focused: boolean): CSSProperties => ({
     width: '100%',
     padding: '12px 14px 12px 42px',
     borderRadius: 8,
@@ -150,6 +162,12 @@ export default function LoginForm() {
             })}
           </div>
         </div>
+
+        {error && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+            {error}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

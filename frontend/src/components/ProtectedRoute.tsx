@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth, type UserRole } from '../context/AuthContext'
 
@@ -9,7 +10,7 @@ const ROLE_HOME: Record<UserRole, string> = {
 }
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: ReactNode
   /** Which roles may access this route. If omitted, any authenticated user may enter. */
   allowedRoles?: UserRole[]
 }
@@ -63,7 +64,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
  * Opposite guard: redirect already-authenticated users away from
  * public pages (login / register) to their own dashboard.
  */
-export function GuestRoute({ children }: { children: React.ReactNode }) {
+export function GuestRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) return null
