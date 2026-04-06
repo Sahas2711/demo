@@ -1,4 +1,10 @@
 import axios from "axios";
+import { extractApiError } from "./apiError";
+
+// Global toast reference — set by ToastProvider after mount
+let _showToast: ((msg: string, type?: 'error' | 'success' | 'info') => void) | null = null
+export function registerToast(fn: typeof _showToast) { _showToast = fn }
+function globalError(msg: string) { _showToast?.(msg, 'error') }
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -49,6 +55,24 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
+
+    // ── 429 Too Many Requests ────────────────────────────────
+    if (status === 429) {
+      globalError('Too many requests. Please slow down and try again.')
+      return Promise.reject(error)
+    }
+
+    // ── 5xx Server errors ────────────────────────────────────
+    if (status && status >= 500) {
+      globalError(extractApiError(error, 'A server error occurred. Please try again later.'))
+      return Promise.reject(error)
+    }
+
+    // ── Network / no response ────────────────────────────────
+    if (!error.response) {
+      globalError('Network error. Please check your connection.')
+      return Promise.reject(error)
+    }
 
     // ── 401 on a protected API call → attempt token refresh ──
     if (

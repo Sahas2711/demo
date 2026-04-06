@@ -2,6 +2,7 @@ import { useState, type FormEvent, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, Package, ShieldCheck, UserCheck, Eye as EyeIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { extractApiError } from '../api/apiError'
 
 const ROLE_REDIRECT: Record<string, string> = {
   ADMIN:  '/dashboard',
@@ -61,8 +62,7 @@ export default function LoginForm() {
       const role = stored ? (JSON.parse(stored) as { role: string }).role : 'ADMIN'
       navigate(ROLE_REDIRECT[role] ?? '/dashboard')
     } catch (err: unknown) {
-      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(axiosMsg ?? 'Invalid credentials. Please try again.')
+      setError(extractApiError(err, 'Invalid credentials. Please try again.'))
     } finally {
       setLoading(false)
     }

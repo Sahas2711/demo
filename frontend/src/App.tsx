@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider, useToast } from './context/ToastContext'
+import { registerToast } from './api/axiosInstance'
 import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute'
 
 import LandingPage from './pages/LandingPage'
@@ -26,10 +28,18 @@ import StaffProfilePage from './pages/staff/StaffProfilePage'
 import AdminProfilePage from './pages/AdminProfilePage'
 import AdminSettingsPage from './pages/AdminSettingsPage'
 
+function ToastBridge() {
+  const { showToast } = useToast()
+  registerToast(showToast)
+  return null
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <ToastProvider>
+        <ToastBridge />
+        <AuthProvider>
         <Routes>
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
@@ -62,7 +72,8 @@ function App() {
           <Route path="/viewer/gst-calculator" element={<ProtectedRoute allowedRoles={['VIEWER']}><ViewerGSTCalculatorPage /></ProtectedRoute>} />
           <Route path="/viewer/profile" element={<ProtectedRoute allowedRoles={['VIEWER']}><ViewerProfilePage /></ProtectedRoute>} />
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

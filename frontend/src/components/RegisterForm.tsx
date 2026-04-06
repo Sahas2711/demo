@@ -7,6 +7,7 @@ import {
   BadgeCheck, Store, Settings2, Briefcase, LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { extractApiError } from '../api/apiError'
 
 const ROLES = [
   { id: 'admin',  label: 'Admin',  desc: 'Shop owner',          icon: ShieldCheck, color: '#724B68', bg: 'rgba(114,75,104,0.08)' },
@@ -54,8 +55,7 @@ export default function RegisterForm() {
       const registeredRole = stored ? (JSON.parse(stored) as { role: string }).role : 'ADMIN'
       navigate(ROLE_HOME[registeredRole] ?? '/dashboard')
     } catch (err: unknown) {
-      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(axiosMsg ?? 'Registration failed. Please try again.')
+      setError(extractApiError(err, 'Registration failed. Please try again.'))
     } finally {
       setLoading(false)
     }
