@@ -1,6 +1,5 @@
 package com.inventra.backend.auth;
 
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.inventra.backend.dto.auth.LoginRequest;
@@ -15,17 +14,10 @@ import com.inventra.backend.security.JwtService;
 import com.inventra.backend.service.AuditLogService;
 import com.inventra.backend.util.InputSanitizer;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.RequestHeader;
-
 import org.springframework.security.access.AccessDeniedException;
 import java.time.Instant;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -45,7 +37,6 @@ import com.inventra.backend.model.RefreshToken;
 import java.time.Duration;
 
 import lombok.RequiredArgsConstructor;
-// import lombok.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -94,8 +85,10 @@ public class AuthService {
 
         userRepository.save(user);
 
-        auditLogService.log(AuditActionType.CREATE, "User",
-                user.getId().toString(), user, null, "registered");
+        try {
+            auditLogService.log(AuditActionType.CREATE, "User",
+                    user.getId().toString(), user, null, "\"registered\"");
+        } catch (Exception ignored) {}
 
         return issueTokenPair(user,
                 safe(request.getDeviceId()),
@@ -115,8 +108,10 @@ public class AuthService {
         if (!user.isActive()) throw new DisabledException("Account inactive");
 
         if (isCurrentlyLocked(user)) {
-            auditLogService.log(AuditActionType.LOGIN, "User",
-                    user.getId().toString(), user, null, "account-locked");
+            try {
+                auditLogService.log(AuditActionType.LOGIN, "User",
+                        user.getId().toString(), user, null, "\"account-locked\"");
+            } catch (Exception ignored) {}
             throw new LockedException("Account locked");
         }
 
@@ -127,16 +122,20 @@ public class AuthService {
         } catch (BadCredentialsException ex) {
             registerFailedAttempt(user);
 
-            auditLogService.log(AuditActionType.LOGIN, "User",
-                    user.getId().toString(), user, null, "login-failed");
+            try {
+                auditLogService.log(AuditActionType.LOGIN, "User",
+                        user.getId().toString(), user, null, "\"login-failed\"");
+            } catch (Exception ignored) {}
 
             throw ex;
         }
 
         resetFailedAttempts(user);
 
-        auditLogService.log(AuditActionType.LOGIN, "User",
-                user.getId().toString(), user, null, "login-success");
+        try {
+            auditLogService.log(AuditActionType.LOGIN, "User",
+                    user.getId().toString(), user, null, "\"login-success\"");
+        } catch (Exception ignored) {}
 
         return issueTokenPair(user,
                 safe(request.getDeviceId()),
@@ -161,34 +160,28 @@ public class AuthService {
 
         User user = token.getUser();
 
-        // 🔥 REUSE DETECTION
         if (token.isRevoked()) {
             revokeAllUserTokens(user);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token reuse detected");
         }
 
-        // ⏳ EXPIRY CHECK
         if (token.getExpiresAt().isBefore(Instant.now())) {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
         }
 
-        // 🔐 DEVICE/IP CHECK (NULL SAFE)
         if (!safe(token.getIpAddress()).equals(currentIp) ||
             !safe(token.getDeviceId()).equals(deviceId)) {
-
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Device mismatch");
         }
 
-        // 🔑 JWT VALIDATION
         if (!jwtService.isTokenValid(refreshTokenValue, user, "REFRESH")) {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        // 🔄 ROTATE TOKEN
         token.setRevoked(true);
         refreshTokenRepository.save(token);
 
@@ -203,14 +196,16 @@ public class AuthService {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
 
-            auditLogService.log(
-                    AuditActionType.LOGOUT,
-                    "User",
-                    token.getUser().getId().toString(),
-                    token.getUser(),
-                    null,
-                    "logout"
-            );
+            try {
+                auditLogService.log(
+                        AuditActionType.LOGOUT,
+                        "User",
+                        token.getUser().getId().toString(),
+                        token.getUser(),
+                        null,
+                        "\"logout\""
+                );
+            } catch (Exception ignored) {}
         });
     }
 

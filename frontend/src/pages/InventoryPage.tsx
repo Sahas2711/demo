@@ -110,8 +110,8 @@ export default function InventoryPage() {
     }
   }
 
-  function openAdd() {
-    setEditProduct(null)
+  function handleEdit(p: ProductResponse) {
+    setEditProduct(p)
     setModalOpen(true)
   }
 
@@ -130,8 +130,6 @@ export default function InventoryPage() {
 
   return (
     <DashboardLayout>
-
-      {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>
@@ -141,7 +139,7 @@ export default function InventoryPage() {
             Manage products, track stock levels, and monitor inventory health.
           </p>
         </div>
-        <button onClick={openAdd} style={{
+        <button onClick={() => { setEditProduct(null); setModalOpen(true) }} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '11px 22px', borderRadius: 10, border: 'none',
           background: '#724B68', color: '#fff', fontSize: 14, fontWeight: 700,
@@ -179,9 +177,7 @@ export default function InventoryPage() {
         }}>
           <AlertTriangle size={20} color="#ea580c" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#9a3412', marginBottom: 4 }}>
-              Stock Alert — Action Required
-            </div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#9a3412', marginBottom: 4 }}>Stock Alert — Action Required</div>
             <div style={{ fontSize: 13, color: '#c2410c', lineHeight: 1.6 }}>
               {outOfStock.length > 0 && (
                 <span><strong>{outOfStock.length} product{outOfStock.length > 1 ? 's' : ''}</strong> out of stock. </span>
@@ -208,7 +204,6 @@ export default function InventoryPage() {
         onStockAdjust={handleStockAdjust}
       />
 
-      {/* Add / Edit modal */}
       {modalOpen && (
         <ProductModal
           product={editProduct}

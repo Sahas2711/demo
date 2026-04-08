@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     saveAuth(accessToken, refreshToken, authUser)
     setState({ user: authUser, accessToken, refreshToken, loading: false })
+    
   }, [])
 
   // ---------- REGISTER ----------

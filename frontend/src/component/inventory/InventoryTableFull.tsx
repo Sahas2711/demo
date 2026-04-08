@@ -3,8 +3,9 @@ import { Search, Pencil, Trash2, Filter, PackageMinus, PackagePlus } from 'lucid
 import type { Product } from './inventoryData'
 
 interface Props {
-  products: Product[]
-  onEdit: (p: Product) => void
+  products: ProductResponse[]
+  loading?: boolean
+  onEdit: (p: ProductResponse) => void
   onDelete: (id: string) => void
   onStockAdjust?: (productId: string, qty: number, reorderLevel: number) => void
 }

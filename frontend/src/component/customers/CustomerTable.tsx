@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Search, Eye, Pencil, Trash2 } from 'lucide-react'
-import type { Customer } from './customerData'
+import type { CustomerResponse } from '../../api/types'
 
 interface Props {
-  customers: Customer[]
-  onView:   (c: Customer) => void
-  onEdit:   (c: Customer) => void
+  customers: CustomerResponse[]
+  onView:   (c: CustomerResponse) => void
+  onEdit:   (c: CustomerResponse) => void
   onDelete: (id: string)  => void
 }
 
@@ -22,7 +22,7 @@ export default function CustomerTable({ customers, onView, onEdit, onDelete }: P
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone.includes(search) ||
-    c.gstin.toLowerCase().includes(search.toLowerCase())
+    (c.gstNumber ?? '').toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -45,7 +45,7 @@ export default function CustomerTable({ customers, onView, onEdit, onDelete }: P
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: '#F5F6F8' }}>
-              {['Customer', 'Phone', 'GSTIN', 'Address', 'Total Purchases', 'Actions'].map(h => (
+              {['Customer', 'Phone', 'GSTIN', 'Address', 'Credit Limit', 'Actions'].map(h => (
                 <th key={h} style={{ padding: '11px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -72,8 +72,8 @@ export default function CustomerTable({ customers, onView, onEdit, onDelete }: P
                 </td>
                 <td style={{ padding: '13px 20px', color: '#4B5563' }}>{c.phone}</td>
                 <td style={{ padding: '13px 20px' }}>
-                  {c.gstin
-                    ? <span style={{ background: 'rgba(114,75,104,0.08)', color: '#724B68', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{c.gstin}</span>
+                  {c.gstNumber
+                    ? <span style={{ background: 'rgba(114,75,104,0.08)', color: '#724B68', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{c.gstNumber}</span>
                     : <span style={{ color: '#9ca3af', fontSize: 13 }}>—</span>
                   }
                 </td>
@@ -81,7 +81,7 @@ export default function CustomerTable({ customers, onView, onEdit, onDelete }: P
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address}</div>
                 </td>
                 <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>
-                  ₹{c.totalPurchases.toLocaleString()}
+                  ₹{c.creditLimit.toLocaleString()}
                 </td>
                 <td style={{ padding: '13px 20px' }}>
                   {confirmId === c.id ? (

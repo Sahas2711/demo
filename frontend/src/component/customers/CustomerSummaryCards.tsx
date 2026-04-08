@@ -1,20 +1,17 @@
 import { Users, IndianRupee, UserCheck, FileText } from 'lucide-react'
-import type { Customer } from './customerData'
+import type { CustomerResponse } from '../../api/types'
 
-interface Props { customers: Customer[] }
+interface Props { customers: CustomerResponse[] }
 
 export default function CustomerSummaryCards({ customers }: Props) {
-  const totalRevenue   = customers.reduce((s, c) => s + c.totalPurchases, 0)
-  const withGstin      = customers.filter(c => c.gstin).length
-  const activeThisMonth = customers.filter(c =>
-    c.purchases.some(p => p.date.includes('May 2024'))
-  ).length
+  const withGstin       = customers.filter(c => c.gstNumber).length
+  const activeCount     = customers.filter(c => c.active).length
 
   const CARDS = [
-    { label: 'Total Customers',    value: customers.length.toString(),              sub: 'Registered',         icon: Users,       iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
-    { label: 'Total Revenue',      value: `₹${(totalRevenue/100000).toFixed(1)}L`, sub: 'All time purchases', icon: IndianRupee, iconBg: 'rgba(5,150,105,0.1)',  iconColor: '#059669', subColor: '#059669' },
-    { label: 'Active This Month',  value: activeThisMonth.toString(),               sub: 'May 2024',           icon: UserCheck,   iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#2563eb' },
-    { label: 'GST Registered',     value: withGstin.toString(),                     sub: 'With GSTIN',         icon: FileText,    iconBg: 'rgba(202,138,4,0.1)',  iconColor: '#ca8a04', subColor: '#ca8a04' },
+    { label: 'Total Customers',   value: customers.length.toString(), sub: 'Registered',       icon: Users,       iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
+    { label: 'Active Customers',  value: activeCount.toString(),      sub: 'Currently active', icon: UserCheck,   iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#2563eb' },
+    { label: 'GST Registered',    value: withGstin.toString(),        sub: 'With GSTIN',       icon: FileText,    iconBg: 'rgba(202,138,4,0.1)',  iconColor: '#ca8a04', subColor: '#ca8a04' },
+    { label: 'Credit Limit Total',value: `₹${(customers.reduce((s,c)=>s+c.creditLimit,0)/100000).toFixed(1)}L`, sub: 'Combined limit', icon: IndianRupee, iconBg: 'rgba(5,150,105,0.1)', iconColor: '#059669', subColor: '#059669' },
   ]
 
   return (

@@ -55,7 +55,10 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
     try {
+      console.log(email);
+      console.log(password);
       await login(email, password)
+
       // After login, the user object is in context — redirect based on actual role from backend
       const stored = localStorage.getItem('user')
       if (stored) {

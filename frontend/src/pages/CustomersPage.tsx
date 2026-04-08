@@ -1,53 +1,63 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { UserPlus } from 'lucide-react'
 import DashboardLayout from '../component/dashboard/DashboardLayout'
 import CustomerSummaryCards from '../component/customers/CustomerSummaryCards'
 import CustomerTable from '../component/customers/CustomerTable'
 import CustomerModal from '../component/customers/CustomerModal'
 import CustomerDetailPanel from '../component/customers/CustomerDetailPanel'
-import { SEED_CUSTOMERS, type Customer } from '../component/customers/customerData'
-
-type CustomerInput = Omit<Customer, 'id' | 'totalPurchases' | 'purchases'> & { id?: string }
+import { customerApi } from '../api/customerApi'
+import type { CustomerResponse } from '../api/types'
 
 export default function CustomersPage() {
-  const [customers, setCustomers]     = useState<Customer[]>(SEED_CUSTOMERS)
-  const [modalOpen, setModalOpen]     = useState(false)
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
-  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null)
+  const [customers, setCustomers]       = useState<CustomerResponse[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [modalOpen, setModalOpen]       = useState(false)
+  const [editCustomer, setEditCustomer] = useState<CustomerResponse | null>(null)
+  const [viewCustomer, setViewCustomer] = useState<CustomerResponse | null>(null)
 
-  function handleSave(data: CustomerInput) {
-    if (data.id) {
-      setCustomers(prev => prev.map(c => c.id === data.id ? { ...c, ...data, id: c.id } : c))
-    } else {
-      const newId = `C${String(customers.length + 1).padStart(3, '0')}`
-      setCustomers(prev => [{
-        id: newId, name: data.name, phone: data.phone,
-        address: data.address, gstin: data.gstin,
-        totalPurchases: 0, purchases: [],
-      }, ...prev])
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await customerApi.getCustomers({ size: 200 })
+      setCustomers(res.data.content)
+    } catch { /* handled by interceptor */ }
+  }, [])
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true)
+      try {
+        const res = await customerApi.getCustomers({ size: 200 })
+        setCustomers(res.data.content)
+      } finally {
+        setLoading(false)
+      }
     }
+    init()
+  }, [])
+
+  async function handleSave(data: Parameters<typeof customerApi.createCustomer>[0] & { id?: string }) {
+    if (data.id) {
+      await customerApi.updateCustomer(data.id, data)
+    } else {
+      await customerApi.createCustomer(data)
+    }
+    await fetchCustomers()
     setModalOpen(false)
     setEditCustomer(null)
   }
 
-  function handleEdit(c: Customer) {
-    setEditCustomer(c)
-    setModalOpen(true)
-  }
-
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    await customerApi.deleteCustomer(id)
     setCustomers(prev => prev.filter(c => c.id !== id))
   }
 
-  function openAdd() {
-    setEditCustomer(null)
+  function handleEdit(c: CustomerResponse) {
+    setEditCustomer(c)
     setModalOpen(true)
   }
 
   return (
     <DashboardLayout>
-
-      {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>
@@ -57,7 +67,7 @@ export default function CustomersPage() {
             Manage customer records, GSTIN details, and purchase history.
           </p>
         </div>
-        <button onClick={openAdd} style={{
+        <button onClick={() => { setEditCustomer(null); setModalOpen(true) }} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '11px 22px', borderRadius: 10, border: 'none',
           background: '#724B68', color: '#fff', fontSize: 14, fontWeight: 700,
@@ -71,18 +81,9 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      {/* Summary cards */}
-      <CustomerSummaryCards customers={customers} />
+      <CustomerSummaryCards customers={customers} loading={loading} />
+      <CustomerTable customers={customers} loading={loading} onView={c => setViewCustomer(c)} onEdit={handleEdit} onDelete={handleDelete} />
 
-      {/* Customer table */}
-      <CustomerTable
-        customers={customers}
-        onView={c => setViewCustomer(c)}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-
-      {/* Add / Edit modal */}
       {modalOpen && (
         <CustomerModal
           customer={editCustomer}
@@ -91,12 +92,8 @@ export default function CustomersPage() {
         />
       )}
 
-      {/* Detail slide-over */}
       {viewCustomer && (
-        <CustomerDetailPanel
-          customer={viewCustomer}
-          onClose={() => setViewCustomer(null)}
-        />
+        <CustomerDetailPanel customer={viewCustomer} onClose={() => setViewCustomer(null)} />
       )}
     </DashboardLayout>
   )

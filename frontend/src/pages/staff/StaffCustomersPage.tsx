@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, UserPlus, Eye, X } from 'lucide-react'
 import StaffLayout from '../../component/staff/StaffLayout'
-import { SEED_CUSTOMERS, type Customer } from '../../component/customers/customerData'
+import { customerApi } from '../../api/customerApi'
+import type { CustomerResponse } from '../../api/types'
 
 const AVATAR_COLORS = ['#724B68', '#2563eb', '#059669', '#ca8a04', '#dc2626', '#7c3aed']
 
@@ -9,7 +10,7 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 }
 
-function CustomerDetailPanel({ customer, onClose }: { customer: Customer; onClose: () => void }) {
+function CustomerDetailPanel({ customer, onClose }: { customer: CustomerResponse; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -31,36 +32,27 @@ function CustomerDetailPanel({ customer, onClose }: { customer: Customer; onClos
             </div>
           </div>
           {[
-            ['Phone',    customer.phone],
-            ['Address',  customer.address],
-            ['GSTIN',    customer.gstin || '—'],
-            ['Total Purchases', `₹${customer.totalPurchases.toLocaleString()}`],
+            ['Phone',   customer.phone],
+            ['Email',   customer.email || '—'],
+            ['Address', customer.address || '—'],
+            ['GSTIN',   customer.gstNumber || '—'],
+            ['Credit Limit', `₹${customer.creditLimit.toLocaleString()}`],
           ].map(([label, value]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F5F6F8', fontSize: 14 }}>
               <span style={{ color: '#4B5563', fontWeight: 500 }}>{label}</span>
               <span style={{ color: '#1F2933', fontWeight: 600 }}>{value}</span>
             </div>
           ))}
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#724B68', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>Recent Purchases</div>
-            {customer.purchases.slice(0, 3).map(p => (
-              <div key={p.invoiceId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F5F6F8', fontSize: 13 }}>
-                <span style={{ fontWeight: 600, color: '#724B68' }}>{p.invoiceId}</span>
-                <span style={{ color: '#4B5563' }}>{p.date}</span>
-                <span style={{ fontWeight: 700, color: '#1F2933' }}>₹{p.amount.toLocaleString()}</span>
-                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: p.status === 'Paid' ? '#dcfce7' : '#fef9c3', color: p.status === 'Paid' ? '#16a34a' : '#ca8a04' }}>{p.status}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: Customer) => void }) {
-  const [form, setForm] = useState({ name: '', phone: '', address: '', gstin: '' })
+function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () => void }) {
+  const [form, setForm]     = useState({ name: '', phone: '', address: '', gstNumber: '', email: '' })
   const [focused, setFocused] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const inp = (f: string): React.CSSProperties => ({
     width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box',
@@ -69,15 +61,15 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
     outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Poppins, Inter, sans-serif',
   })
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!form.name || !form.phone) return
-    onAdd({
-      id: `C${String(Date.now()).slice(-3)}`,
-      name: form.name, phone: form.phone,
-      address: form.address, gstin: form.gstin,
-      totalPurchases: 0, purchases: [],
-    })
-    onClose()
+    setSaving(true)
+    try {
+      await customerApi.createCustomer({ name: form.name, phone: form.phone, address: form.address, gstNumber: form.gstNumber, email: form.email })
+      onAdd()
+      onClose()
+    } catch { /* handled by interceptor */ }
+    finally { setSaving(false) }
   }
 
   return (
@@ -92,27 +84,28 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { key: 'name',    label: 'Name *',          placeholder: 'Customer / Business name' },
-            { key: 'phone',   label: 'Phone *',          placeholder: '+91 98765 43210' },
-            { key: 'address', label: 'Address',          placeholder: 'Full address' },
-            { key: 'gstin',   label: 'GSTIN (optional)', placeholder: 'e.g. 27ABCDE1234F1Z5' },
+            { key: 'name',      label: 'Name *',          placeholder: 'Customer / Business name' },
+            { key: 'phone',     label: 'Phone *',          placeholder: '+91 98765 43210' },
+            { key: 'email',     label: 'Email',            placeholder: 'email@example.com' },
+            { key: 'address',   label: 'Address',          placeholder: 'Full address' },
+            { key: 'gstNumber', label: 'GSTIN (optional)', placeholder: 'e.g. 27ABCDE1234F1Z5' },
           ].map(({ key, label, placeholder }) => (
             <div key={key}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#1F2933', display: 'block', marginBottom: 5 }}>{label}</label>
-              <input placeholder={placeholder} value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+              <input placeholder={placeholder} value={(form as Record<string, string>)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                 style={inp(key)} onFocus={() => setFocused(key)} onBlur={() => setFocused(null)} />
             </div>
           ))}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button onClick={onClose} style={{ padding: '10px 22px', borderRadius: 10, border: '1.5px solid #E7E9ED', background: '#fff', fontSize: 14, fontWeight: 600, color: '#4B5563', cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleAdd} disabled={!form.name || !form.phone} style={{
+            <button onClick={handleAdd} disabled={!form.name || !form.phone || saving} style={{
               padding: '10px 24px', borderRadius: 10, border: 'none',
               background: form.name && form.phone ? '#724B68' : '#E7E9ED',
               color: form.name && form.phone ? '#fff' : '#9ca3af',
               fontSize: 14, fontWeight: 700, cursor: form.name && form.phone ? 'pointer' : 'not-allowed',
               boxShadow: form.name && form.phone ? '0 4px 14px rgba(114,75,104,0.3)' : 'none',
               fontFamily: 'Poppins, Inter, sans-serif',
-            }}>Add Customer</button>
+            }}>{saving ? 'Saving…' : 'Add Customer'}</button>
           </div>
         </div>
       </div>
@@ -121,15 +114,26 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
 }
 
 export default function StaffCustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(SEED_CUSTOMERS)
-  const [search, setSearch]       = useState('')
-  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null)
-  const [showAdd, setShowAdd]     = useState(false)
+  const [customers, setCustomers]       = useState<CustomerResponse[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [search, setSearch]             = useState('')
+  const [viewCustomer, setViewCustomer] = useState<CustomerResponse | null>(null)
+  const [showAdd, setShowAdd]           = useState(false)
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await customerApi.getCustomers({ size: 500 })
+      setCustomers(res.data.content)
+    } catch { /* handled by interceptor */ }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone.includes(search) ||
-    c.gstin.toLowerCase().includes(search.toLowerCase())
+    (c.gstNumber ?? '').toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -146,9 +150,7 @@ export default function StaffCustomersPage() {
         }}
           onMouseEnter={e => { e.currentTarget.style.background = '#5A3A52'; e.currentTarget.style.transform = 'translateY(-1px)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '#724B68'; e.currentTarget.style.transform = 'translateY(0)' }}
-        >
-          <UserPlus size={16} /> Add Customer
-        </button>
+        ><UserPlus size={16} /> Add Customer</button>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E7E9ED', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
@@ -163,19 +165,20 @@ export default function StaffCustomersPage() {
             />
           </div>
         </div>
-
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: '#F5F6F8' }}>
-                {['Customer', 'Phone', 'GSTIN', 'Address', 'Total Purchases', 'Actions'].map(h => (
+                {['Customer', 'Phone', 'GSTIN', 'Address', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '11px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No customers found.</td></tr>
+              {loading ? (
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>Loading…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No customers found.</td></tr>
               ) : filtered.map((c, idx) => (
                 <tr key={c.id} style={{ borderTop: '1px solid #F5F6F8', transition: 'background 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#fdf9fc')}
@@ -194,36 +197,32 @@ export default function StaffCustomersPage() {
                   </td>
                   <td style={{ padding: '13px 20px', color: '#4B5563' }}>{c.phone}</td>
                   <td style={{ padding: '13px 20px' }}>
-                    {c.gstin
-                      ? <span style={{ background: 'rgba(114,75,104,0.08)', color: '#724B68', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{c.gstin}</span>
+                    {c.gstNumber
+                      ? <span style={{ background: 'rgba(114,75,104,0.08)', color: '#724B68', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{c.gstNumber}</span>
                       : <span style={{ color: '#9ca3af', fontSize: 13 }}>—</span>
                     }
                   </td>
                   <td style={{ padding: '13px 20px', color: '#4B5563', fontSize: 13, maxWidth: 180 }}>
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address}</div>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address || '—'}</div>
                   </td>
-                  <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>₹{c.totalPurchases.toLocaleString()}</td>
                   <td style={{ padding: '13px 20px' }}>
                     <button onClick={() => setViewCustomer(c)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 7, border: '1.5px solid #E7E9ED', background: '#fff', fontSize: 12, fontWeight: 600, color: '#724B68', cursor: 'pointer', transition: 'all 0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#fdf9fc'; e.currentTarget.style.borderColor = '#724B68' }}
                       onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#E7E9ED' }}
-                    >
-                      <Eye size={13} /> View
-                    </button>
+                    ><Eye size={13} /> View</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-
         <div style={{ padding: '12px 20px', borderTop: '1px solid #F5F6F8', fontSize: 13, color: '#4B5563' }}>
           Showing {filtered.length} of {customers.length} customers
         </div>
       </div>
 
       {viewCustomer && <CustomerDetailPanel customer={viewCustomer} onClose={() => setViewCustomer(null)} />}
-      {showAdd && <AddCustomerModal onClose={() => setShowAdd(false)} onAdd={c => setCustomers(prev => [c, ...prev])} />}
+      {showAdd && <AddCustomerModal onClose={() => setShowAdd(false)} onAdd={fetchCustomers} />}
     </StaffLayout>
   )
 }

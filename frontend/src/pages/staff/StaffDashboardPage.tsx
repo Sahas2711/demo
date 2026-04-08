@@ -1,47 +1,62 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TrendingUp, ShoppingCart, FilePlus, UserPlus, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import StaffLayout from '../../component/staff/StaffLayout'
-
-const TODAY_STATS = [
-  { label: "Today's Sales",   value: '₹12,400', sub: '6 invoices',     icon: TrendingUp,   iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
-  { label: 'Orders Today',    value: '6',        sub: '2 pending',      icon: ShoppingCart, iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#ca8a04' },
-  { label: 'Cash Collected',  value: '₹9,800',   sub: '₹2,600 pending', icon: CheckCircle,  iconBg: 'rgba(5,150,105,0.1)', iconColor: '#059669', subColor: '#ef4444' },
-  { label: 'Low Stock Items', value: '8',        sub: 'Needs attention', icon: AlertCircle,  iconBg: 'rgba(239,68,68,0.1)', iconColor: '#ef4444', subColor: '#ef4444' },
-]
-
-const RECENT_TXN = [
-  { id: 'INV-1031', customer: 'Rahul Traders',     amount: 3200,  status: 'Paid',    time: '10:32 AM' },
-  { id: 'INV-1030', customer: 'Amit Hardware',      amount: 1800,  status: 'Pending', time: '09:55 AM' },
-  { id: 'INV-1029', customer: 'Ravi Constructions', amount: 8500,  status: 'Paid',    time: '09:20 AM' },
-  { id: 'INV-1028', customer: 'Sharma Builders',    amount: 4200,  status: 'Paid',    time: '08:45 AM' },
-  { id: 'INV-1027', customer: 'Kumar & Sons',       amount: 12000, status: 'Pending', time: '08:10 AM' },
-]
+import { billingApi } from '../../api/billingApi'
+import { inventoryApi } from '../../api/inventoryApi'
+import type { InvoiceResponse } from '../../api/types'
 
 function Badge({ status }: { status: string }) {
-  const paid = status === 'Paid'
+  const paid = status === 'PAID'
   return (
     <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: paid ? '#dcfce7' : '#fef9c3', color: paid ? '#16a34a' : '#ca8a04' }}>
-      {status}
+      {paid ? 'Paid' : 'Pending'}
     </span>
   )
 }
 
 export default function StaffDashboardPage() {
   const navigate = useNavigate()
-  const [hovered, setHovered] = useState<string | null>(null)
+  const [hovered, setHovered]         = useState<string | null>(null)
+  const [invoices, setInvoices]       = useState<InvoiceResponse[]>([])
+  const [lowStockCount, setLowStockCount] = useState(0)
+  const [loading, setLoading]         = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [invRes, lowRes] = await Promise.all([
+          billingApi.getInvoices({ size: 500, sort: 'createdAt,desc' }),
+          inventoryApi.getLowStockProducts(),
+        ])
+        setInvoices(invRes.data.content)
+        setLowStockCount(lowRes.data.length)
+      } catch { /* handled by interceptor */ }
+      finally { setLoading(false) }
+    }
+    load()
+  }, [])
+
+  const todaySales    = invoices.reduce((s, i) => s + i.grandTotal, 0)
+  const pendingCount  = invoices.filter(i => i.status === 'SENT').length
+  const paidTotal     = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.grandTotal, 0)
+  const pendingTotal  = invoices.filter(i => i.status === 'SENT').reduce((s, i) => s + i.grandTotal, 0)
+
+  const TODAY_STATS = [
+    { label: 'Total Sales',     value: loading ? '…' : `₹${todaySales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,   sub: `${invoices.length} invoices`,  icon: TrendingUp,   iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#4B5563' },
+    { label: 'Total Orders',    value: loading ? '…' : `${invoices.length}`,                                                       sub: `${pendingCount} pending`,      icon: ShoppingCart, iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#ca8a04' },
+    { label: 'Cash Collected',  value: loading ? '…' : `₹${paidTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,    sub: `₹${pendingTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })} pending`, icon: CheckCircle, iconBg: 'rgba(5,150,105,0.1)', iconColor: '#059669', subColor: '#ef4444' },
+    { label: 'Low Stock Items', value: loading ? '…' : `${lowStockCount}`,                                                         sub: 'Needs attention',              icon: AlertCircle,  iconBg: 'rgba(239,68,68,0.1)', iconColor: '#ef4444', subColor: '#ef4444' },
+  ]
+
+  const recentTxn = invoices.slice(0, 5)
 
   return (
     <StaffLayout>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>
-            Staff Dashboard
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: '#4B5563' }}>
-            Welcome back 👋 Here's your activity for today.
-          </p>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>Staff Dashboard</h1>
+          <p style={{ margin: '4px 0 0', fontSize: 14, color: '#4B5563' }}>Welcome back 👋 Here's your activity overview.</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
@@ -65,7 +80,6 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
         {TODAY_STATS.map(({ label, value, sub, icon: Icon, iconBg, iconColor, subColor }) => (
           <div key={label} style={{
@@ -88,7 +102,6 @@ export default function StaffDashboardPage() {
         ))}
       </div>
 
-      {/* Recent Transactions */}
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E7E9ED', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid #E7E9ED', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -101,29 +114,33 @@ export default function StaffDashboardPage() {
           }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#724B68'; e.currentTarget.style.background = '#fdf9fc' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#E7E9ED'; e.currentTarget.style.background = 'none' }}
-          >
-            View All
-          </button>
+          >View All</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: '#F5F6F8' }}>
-                {['Invoice ID', 'Customer', 'Time', 'Amount', 'Status'].map(h => (
+                {['Invoice ID', 'Customer', 'Date', 'Amount', 'Status'].map(h => (
                   <th key={h} style={{ padding: '11px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {RECENT_TXN.map(txn => (
+              {loading ? (
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>Loading…</td></tr>
+              ) : recentTxn.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>No transactions yet.</td></tr>
+              ) : recentTxn.map(txn => (
                 <tr key={txn.id} style={{ borderTop: '1px solid #F5F6F8', transition: 'background 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#fdf9fc')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                 >
-                  <td style={{ padding: '13px 20px', fontWeight: 700, color: '#724B68' }}>{txn.id}</td>
-                  <td style={{ padding: '13px 20px', fontWeight: 500, color: '#1F2933' }}>{txn.customer}</td>
-                  <td style={{ padding: '13px 20px', color: '#4B5563', fontSize: 13 }}>{txn.time}</td>
-                  <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>₹{txn.amount.toLocaleString()}</td>
+                  <td style={{ padding: '13px 20px', fontWeight: 700, color: '#724B68' }}>{txn.invoiceNumber}</td>
+                  <td style={{ padding: '13px 20px', fontWeight: 500, color: '#1F2933' }}>{txn.customerName}</td>
+                  <td style={{ padding: '13px 20px', color: '#4B5563', fontSize: 13 }}>
+                    {new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </td>
+                  <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>₹{txn.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                   <td style={{ padding: '13px 20px' }}><Badge status={txn.status} /></td>
                 </tr>
               ))}

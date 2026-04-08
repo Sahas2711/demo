@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { X, User, Phone, MapPin, FileText } from 'lucide-react'
-import type { Customer } from './customerData'
+import type { CustomerResponse, CustomerRequest } from '../../api/types'
 
-type CustomerInput = Omit<Customer, 'id' | 'totalPurchases' | 'purchases'> & { id?: string }
+type CustomerInput = CustomerRequest & { id?: string }
 
 interface Props {
-  customer?: Customer | null
+  customer?: CustomerResponse | null
   onSave: (c: CustomerInput) => void
   onClose: () => void
 }
 
-const EMPTY = { name: '', phone: '', address: '', gstin: '' }
+const EMPTY = { name: '', phone: '', address: '', gstNumber: '' }
 
 export default function CustomerModal({ customer, onSave, onClose }: Props) {
   const [form, setForm]       = useState(EMPTY)
@@ -18,7 +18,7 @@ export default function CustomerModal({ customer, onSave, onClose }: Props) {
   const [errors, setErrors]   = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setForm(customer ? { name: customer.name, phone: customer.phone, address: customer.address, gstin: customer.gstin } : EMPTY)
+    setForm(customer ? { name: customer.name, phone: customer.phone, address: customer.address ?? '', gstNumber: customer.gstNumber ?? '' } : EMPTY)
     setErrors({})
   }, [customer])
 
@@ -26,16 +26,15 @@ export default function CustomerModal({ customer, onSave, onClose }: Props) {
     const e: Record<string, string> = {}
     if (!form.name.trim())                          e.name  = 'Customer name is required'
     if (!/^\d{10}$/.test(form.phone))               e.phone = 'Enter a valid 10-digit phone number'
-    if (!form.address.trim())                       e.address = 'Address is required'
-    if (form.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(form.gstin))
-      e.gstin = 'Invalid GSTIN format'
+    if (form.gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(form.gstNumber))
+      e.gstNumber = 'Invalid GSTIN format'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   function handleSave() {
     if (!validate()) return
-    onSave({ id: customer?.id, name: form.name.trim(), phone: form.phone, address: form.address.trim(), gstin: form.gstin.trim().toUpperCase() })
+    onSave({ id: customer?.id, name: form.name.trim(), phone: form.phone, address: form.address.trim(), gstNumber: form.gstNumber.trim().toUpperCase() })
   }
 
   const inp = (f: string, hasError: boolean): React.CSSProperties => ({
@@ -122,12 +121,12 @@ export default function CustomerModal({ customer, onSave, onClose }: Props) {
             {lbl('GSTIN', true)}
             <div style={{ position: 'relative' }}>
               <FileText size={15} color={ic('gstin')} style={is} />
-              <input type="text" placeholder="22AAAAA0000A1Z5" value={form.gstin}
-                onChange={e => setForm(f => ({ ...f, gstin: e.target.value.toUpperCase().slice(0, 15) }))}
+              <input type="text" placeholder="22AAAAA0000A1Z5" value={form.gstNumber}
+                onChange={e => setForm(f => ({ ...f, gstNumber: e.target.value.toUpperCase().slice(0, 15) }))}
                 onFocus={() => setFocused('gstin')} onBlur={() => setFocused(null)}
-                style={inp('gstin', !!errors.gstin)} />
+                style={inp('gstin', !!errors.gstNumber)} />
             </div>
-            {err('gstin')}
+            {err('gstNumber')}
           </div>
 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', paddingTop: 4 }}>
