@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:15-alpine:///inventra_test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+auth:
+  jwt:
+    secret: "test-secret-key-for-jwt-signing-test-secret-key-1234567890"
+    access-token-expiry-minutes: 15
+    refresh-token-expiry-days: 7
+    issuer: inventra-backend-test
+    audience: inventra-client-test
+  cookie:
+    secure: false
+    same-site: Strict
+  account:
+    max-failed-attempts: 5
+    lock-duration-minutes: 30

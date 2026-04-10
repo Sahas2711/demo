@@ -181,6 +181,7 @@ export default function LoginForm() {
                 position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none'
               }} />
               <input
+                aria-label="Email Address"
                 type="email" required placeholder="you@company.com"
                 value={email} onChange={e => setEmail(e.target.value)}
                 onFocus={() => setEmailFocus(true)} onBlur={() => setEmailFocus(false)}
@@ -203,6 +204,7 @@ export default function LoginForm() {
                 position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none'
               }} />
               <input
+                aria-label="Password"
                 type={showPass ? 'text' : 'password'} required placeholder="Enter your password"
                 value={password} onChange={e => setPassword(e.target.value)}
                 onFocus={() => setPassFocus(true)} onBlur={() => setPassFocus(false)}

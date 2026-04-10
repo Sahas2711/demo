@@ -4,6 +4,7 @@ import type { CustomerResponse } from '../../api/types'
 
 interface Props {
   customers: CustomerResponse[]
+  loading?: boolean
   onView:   (c: CustomerResponse) => void
   onEdit:   (c: CustomerResponse) => void
   onDelete: (id: string)  => void

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search, Eye, Download } from 'lucide-react'
 import type { Invoice } from './InvoiceDetailModal'
 import { downloadPDF } from './InvoiceDetailModal'
+import type { InvoiceResponse } from '../../api/types'
 
 const INITIAL: Invoice[] = [
   { id: 'INV-1021', customer: 'Rahul Traders',      phone: '+91 98001 11111', address: '12, MG Road, Bengaluru', date: '24 May 2024', amount: 3200,  gst: 576,  status: 'Paid',    items: [{ name: 'Cement Bags',    qty: 5,  price: 380,  gstRate: 28 }, { name: 'Red Bricks', qty: 200, price: 8, gstRate: 5 }] },
@@ -13,8 +14,35 @@ const INITIAL: Invoice[] = [
 ]
 
 interface Props {
-  invoices: Invoice[]
-  onView: (inv: Invoice) => void
+  invoices: Array<Invoice | InvoiceResponse>
+  loading?: boolean
+  onView: (inv: Invoice | InvoiceResponse) => void
+}
+
+function invoiceId(inv: Invoice | InvoiceResponse) {
+  return 'invoiceNumber' in inv ? inv.invoiceNumber : inv.id
+}
+
+function invoiceCustomer(inv: Invoice | InvoiceResponse) {
+  return 'customerName' in inv ? inv.customerName : inv.customer
+}
+
+function invoiceDate(inv: Invoice | InvoiceResponse) {
+  return 'createdAt' in inv
+    ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : inv.date
+}
+
+function invoiceAmount(inv: Invoice | InvoiceResponse) {
+  return 'grandTotal' in inv ? inv.grandTotal : inv.amount
+}
+
+function invoiceStatus(inv: Invoice | InvoiceResponse) {
+  if ('invoiceNumber' in inv) {
+    if (inv.status === 'PAID') return 'Paid'
+    if (inv.status === 'SENT') return 'Pending'
+  }
+  return inv.status
 }
 
 function Badge({ status }: { status: string }) {
@@ -28,8 +56,8 @@ export default function InvoiceTable({ invoices, onView }: Props) {
   const [search, setSearch] = useState('')
 
   const filtered = invoices.filter(inv =>
-    inv.id.toLowerCase().includes(search.toLowerCase()) ||
-    inv.customer.toLowerCase().includes(search.toLowerCase())
+    invoiceId(inv).toLowerCase().includes(search.toLowerCase()) ||
+    invoiceCustomer(inv).toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -60,18 +88,18 @@ export default function InvoiceTable({ invoices, onView }: Props) {
             {filtered.length === 0 ? (
               <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No invoices found.</td></tr>
             ) : filtered.map(inv => (
-              <tr key={inv.id} style={{ borderTop: '1px solid #F5F6F8', transition: 'background 0.15s' }}
+              <tr key={invoiceId(inv)} style={{ borderTop: '1px solid #F5F6F8', transition: 'background 0.15s' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fdf9fc')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
               >
-                <td style={{ padding: '13px 20px', fontWeight: 700, color: '#724B68' }}>{inv.id}</td>
-                <td style={{ padding: '13px 20px', fontWeight: 500, color: '#1F2933' }}>{inv.customer}</td>
-                <td style={{ padding: '13px 20px', color: '#4B5563', fontSize: 13 }}>{inv.date}</td>
-                <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>₹{inv.amount.toLocaleString()}</td>
+                <td style={{ padding: '13px 20px', fontWeight: 700, color: '#724B68' }}>{invoiceId(inv)}</td>
+                <td style={{ padding: '13px 20px', fontWeight: 500, color: '#1F2933' }}>{invoiceCustomer(inv)}</td>
+                <td style={{ padding: '13px 20px', color: '#4B5563', fontSize: 13 }}>{invoiceDate(inv)}</td>
+                <td style={{ padding: '13px 20px', fontWeight: 700, color: '#1F2933' }}>₹{invoiceAmount(inv).toLocaleString()}</td>
                 <td style={{ padding: '13px 20px' }}>
                   <span style={{ background: 'rgba(114,75,104,0.08)', color: '#724B68', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>GST Included</span>
                 </td>
-                <td style={{ padding: '13px 20px' }}><Badge status={inv.status} /></td>
+                <td style={{ padding: '13px 20px' }}><Badge status={invoiceStatus(inv)} /></td>
                 <td style={{ padding: '13px 20px' }}>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => onView(inv)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 7, border: '1.5px solid #E7E9ED', background: '#fff', fontSize: 12, fontWeight: 600, color: '#724B68', cursor: 'pointer', transition: 'all 0.15s' }}
@@ -80,7 +108,7 @@ export default function InvoiceTable({ invoices, onView }: Props) {
                     >
                       <Eye size={13} /> View
                     </button>
-                    <button onClick={() => downloadPDF(inv)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 7, border: '1.5px solid #E7E9ED', background: '#fff', fontSize: 12, fontWeight: 600, color: '#4B5563', cursor: 'pointer', transition: 'all 0.15s' }}
+                    <button onClick={() => { if (!('invoiceNumber' in inv)) downloadPDF(inv) }} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 7, border: '1.5px solid #E7E9ED', background: '#fff', fontSize: 12, fontWeight: 600, color: '#4B5563', cursor: 'pointer', transition: 'all 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#F5F6F8'}
                       onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                     >

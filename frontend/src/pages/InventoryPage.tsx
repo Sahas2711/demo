@@ -8,16 +8,15 @@ import type { Product, Category } from '../component/inventory/inventoryData'
 import api from '../api/axiosInstance'
 
 export default function InventoryPage() {
-  const [products, setProducts]       = useState<Product[]>([])
-  const [categories, setCategories]   = useState<Category[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState<string | null>(null)
-  const [modalOpen, setModalOpen]     = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [alertDismissed, setAlertDismissed] = useState(false)
-  const [saving, setSaving]           = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  // ── Fetch products + categories from backend ──
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
@@ -35,13 +34,13 @@ export default function InventoryPage() {
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  // ── Low stock / out of stock alerts ──
-  const lowStockItems = products.filter(p => p.lowStock && p.quantityAvailable > 0)
-  const outOfStock    = products.filter(p => p.quantityAvailable === 0 && p.active)
+  const lowStockItems = products.filter((p) => p.lowStock && p.quantityAvailable > 0)
+  const outOfStock = products.filter((p) => p.quantityAvailable === 0 && p.active)
 
-  // ── Save (create or update) ──
   async function handleSave(data: {
     id?: string
     name: string
@@ -82,13 +81,11 @@ export default function InventoryPage() {
     }
   }
 
-  // ── Edit ──
-  function handleEdit(p: Product) {
-    setEditProduct(p)
+  function handleEdit(product: Product) {
+    setEditProduct(product)
     setModalOpen(true)
   }
 
-  // ── Delete (deactivate) ──
   async function handleDelete(id: string) {
     try {
       setError(null)
@@ -99,7 +96,6 @@ export default function InventoryPage() {
     }
   }
 
-  // ── Stock adjustment ──
   async function handleStockAdjust(productId: string, quantityAvailable: number, reorderLevel: number) {
     try {
       setError(null)
@@ -110,18 +106,12 @@ export default function InventoryPage() {
     }
   }
 
-  function handleEdit(p: ProductResponse) {
-    setEditProduct(p)
-    setModalOpen(true)
-  }
-
-  // ── Loading state ──
   if (loading) {
     return (
       <DashboardLayout>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', color: '#724B68', gap: 10 }}>
           <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontSize: 16, fontWeight: 600 }}>Loading inventory…</span>
+          <span style={{ fontSize: 16, fontWeight: 600 }}>Loading inventory...</span>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </DashboardLayout>
@@ -139,27 +129,55 @@ export default function InventoryPage() {
             Manage products, track stock levels, and monitor inventory health.
           </p>
         </div>
-        <button onClick={() => { setEditProduct(null); setModalOpen(true) }} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '11px 22px', borderRadius: 10, border: 'none',
-          background: '#724B68', color: '#fff', fontSize: 14, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'Poppins, Inter, sans-serif',
-          boxShadow: '0 4px 14px rgba(114,75,104,0.3)', transition: 'all 0.2s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#5A3A52'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#724B68'; e.currentTarget.style.transform = 'translateY(0)' }}
+        <button
+          onClick={() => {
+            setEditProduct(null)
+            setModalOpen(true)
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '11px 22px',
+            borderRadius: 10,
+            border: 'none',
+            background: '#724B68',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'Poppins, Inter, sans-serif',
+            boxShadow: '0 4px 14px rgba(114,75,104,0.3)',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#5A3A52'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#724B68'
+            e.currentTarget.style.transform = 'translateY(0)'
+          }}
         >
           <PackagePlus size={17} /> Add Product
         </button>
       </div>
 
-      {/* Error banner */}
       {error && (
-        <div style={{
-          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
-          padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
-          color: '#dc2626', fontSize: 14, fontWeight: 500,
-        }}>
+        <div
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 12,
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            color: '#dc2626',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
           <AlertTriangle size={18} />
           <span style={{ flex: 1 }}>{error}</span>
           <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 2 }}>
@@ -168,20 +186,24 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Low stock alert banner */}
       {!alertDismissed && (lowStockItems.length > 0 || outOfStock.length > 0) && (
-        <div style={{
-          background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12,
-          padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: 12,
-          animation: 'fadeInUp 0.3s ease both',
-        }}>
+        <div
+          style={{
+            background: '#fff7ed',
+            border: '1px solid #fed7aa',
+            borderRadius: 12,
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            animation: 'fadeInUp 0.3s ease both',
+          }}
+        >
           <AlertTriangle size={20} color="#ea580c" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#9a3412', marginBottom: 4 }}>Stock Alert — Action Required</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#9a3412', marginBottom: 4 }}>Stock Alert - Action Required</div>
             <div style={{ fontSize: 13, color: '#c2410c', lineHeight: 1.6 }}>
-              {outOfStock.length > 0 && (
-                <span><strong>{outOfStock.length} product{outOfStock.length > 1 ? 's' : ''}</strong> out of stock. </span>
-              )}
+              {outOfStock.length > 0 && <span><strong>{outOfStock.length} product{outOfStock.length > 1 ? 's' : ''}</strong> out of stock. </span>}
               {lowStockItems.length > 0 && (
                 <span><strong>{lowStockItems.length} product{lowStockItems.length > 1 ? 's' : ''}</strong> running low on stock.</span>
               )}
@@ -193,16 +215,9 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Summary cards */}
       <InventorySummaryCards products={products} categories={categories} />
 
-      {/* Inventory table */}
-      <InventoryTableFull
-        products={products}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onStockAdjust={handleStockAdjust}
-      />
+      <InventoryTableFull products={products} onEdit={handleEdit} onDelete={handleDelete} onStockAdjust={handleStockAdjust} />
 
       {modalOpen && (
         <ProductModal
@@ -210,7 +225,10 @@ export default function InventoryPage() {
           categories={categories}
           saving={saving}
           onSave={handleSave}
-          onClose={() => { setModalOpen(false); setEditProduct(null) }}
+          onClose={() => {
+            setModalOpen(false)
+            setEditProduct(null)
+          }}
         />
       )}
     </DashboardLayout>

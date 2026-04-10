@@ -122,7 +122,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
           {/* Product Name */}
           <div>
             {lbl('Product Name *')}
-            <input type="text" placeholder="e.g. Cement Bags" value={form.name}
+            <input aria-label="Product Name" type="text" placeholder="e.g. Cement Bags" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               onFocus={() => setFocused('name')} onBlur={() => setFocused(null)}
               style={inp('name', !!errors.name)} />
@@ -132,7 +132,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
           {/* Description */}
           <div>
             {lbl('Description')}
-            <textarea placeholder="Product description (optional)" value={form.description}
+            <textarea aria-label="Description" placeholder="Product description (optional)" value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               onFocus={() => setFocused('desc')} onBlur={() => setFocused(null)}
               rows={2}
@@ -143,7 +143,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {lbl('HSN Code *')}
-              <input type="text" placeholder="e.g. 2523" value={form.hsnCode}
+              <input aria-label="HSN Code" type="text" placeholder="e.g. 2523" value={form.hsnCode}
                 onChange={e => setForm(f => ({ ...f, hsnCode: e.target.value }))}
                 onFocus={() => setFocused('hsn')} onBlur={() => setFocused(null)}
                 style={inp('hsn', !!errors.hsnCode)} />
@@ -151,7 +151,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
             </div>
             <div>
               {lbl('Category *')}
-              <select value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
+              <select aria-label="Category" value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
                 onFocus={() => setFocused('cat')} onBlur={() => setFocused(null)}
                 style={{ ...inp('cat', !!errors.categoryId), appearance: 'none', cursor: 'pointer' }}>
                 <option value="">Select category</option>
@@ -165,7 +165,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {lbl('Unit Price (₹) *')}
-              <input type="number" min={0} step="0.01" placeholder="380" value={form.unitPrice}
+              <input aria-label="Unit Price" type="number" min={0} step="0.01" placeholder="380" value={form.unitPrice}
                 onChange={e => setForm(f => ({ ...f, unitPrice: e.target.value }))}
                 onFocus={() => setFocused('price')} onBlur={() => setFocused(null)}
                 style={inp('price', !!errors.unitPrice)} />
@@ -173,7 +173,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
             </div>
             <div>
               {lbl('GST %')}
-              <select value={form.gstPercentage} onChange={e => setForm(f => ({ ...f, gstPercentage: e.target.value }))}
+              <select aria-label="GST Percentage" value={form.gstPercentage} onChange={e => setForm(f => ({ ...f, gstPercentage: e.target.value }))}
                 onFocus={() => setFocused('gst')} onBlur={() => setFocused(null)}
                 style={{ ...inp('gst', false), appearance: 'none', cursor: 'pointer' }}>
                 {GST_SLABS.map(r => <option key={r} value={r}>{r}%</option>)}
@@ -185,7 +185,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {lbl('Stock Quantity *')}
-              <input type="number" min={0} placeholder="100" value={form.quantityAvailable}
+              <input aria-label="Stock Quantity" type="number" min={0} placeholder="100" value={form.quantityAvailable}
                 onChange={e => setForm(f => ({ ...f, quantityAvailable: e.target.value }))}
                 onFocus={() => setFocused('stock')} onBlur={() => setFocused(null)}
                 style={inp('stock', !!errors.quantityAvailable)} />
@@ -193,7 +193,7 @@ export default function ProductModal({ product, categories, saving, onSave, onCl
             </div>
             <div>
               {lbl('Reorder Level *')}
-              <input type="number" min={0} placeholder="10" value={form.reorderLevel}
+              <input aria-label="Reorder Level" type="number" min={0} placeholder="10" value={form.reorderLevel}
                 onChange={e => setForm(f => ({ ...f, reorderLevel: e.target.value }))}
                 onFocus={() => setFocused('reorder')} onBlur={() => setFocused(null)}
                 style={inp('reorder', !!errors.reorderLevel)} />
