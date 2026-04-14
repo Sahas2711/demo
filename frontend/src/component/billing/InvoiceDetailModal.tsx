@@ -191,9 +191,9 @@ export default function InvoiceDetailModal({ invoice, onClose }: Props) {
                   <tr key={i} style={{ borderTop: '1px solid #F5F6F8' }}>
                     <td style={{ padding: '11px 14px', fontWeight: 600, color: '#1F2933' }}>{item.name}</td>
                     <td style={{ padding: '11px 14px', textAlign: 'right', color: '#4B5563' }}>{item.qty}</td>
-                    <td style={{ padding: '11px 14px', textAlign: 'right', color: '#4B5563' }}>₹{item.price.toLocaleString()}</td>
-                    <td style={{ padding: '11px 14px', textAlign: 'right', color: '#4B5563' }}>{item.gstRate}%</td>
-                    <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: '#1F2933' }}>₹{(item.qty * item.price).toLocaleString()}</td>
+                    <td style={{ padding: '11px 14px', textAlign: 'right', color: '#4B5563' }}>₹{((item.price ?? (item as any).unitPrice) ?? 0).toLocaleString()}</td>
+                    <td style={{ padding: '11px 14px', textAlign: 'right', color: '#4B5563' }}>{item.gstRate ?? (item as any).gstPercentage ?? 0}%</td>
+                    <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: '#1F2933' }}>₹{(item.qty * ((item.price ?? (item as any).unitPrice) ?? 0)).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

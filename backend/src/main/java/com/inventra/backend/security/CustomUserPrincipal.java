@@ -44,15 +44,16 @@ public class CustomUserPrincipal implements UserDetails {
     // ⏳ Account status checks
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true; // you are not handling expiry yet
-    }
-
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true; // can extend later
-    }
+    public boolean isAccountNonLocked() { return !user.isAccountLocked(); }
+
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+
+    @Override
+    public boolean isEnabled() { return user.isActive(); }
 
 
 

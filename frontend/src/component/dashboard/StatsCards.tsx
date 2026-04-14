@@ -1,44 +1,47 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, FileText, Package, AlertTriangle, Loader2 } from 'lucide-react'
-import api from '../../api/axiosInstance'
-
-interface DashboardStats {
-  totalSales: number
-  totalInvoices: number
-  pendingInvoices: number
-  totalProducts: number
-  totalCategories: number
-  lowStockCount: number
-}
-
-const CARD_META = [
-  { key: 'totalSales',    label: 'Total Sales',       icon: TrendingUp,    iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#16a34a',  format: (v: number) => `₹${v.toLocaleString()}`,  sub: (s: DashboardStats) => `${s.totalInvoices} invoices total` },
-  { key: 'totalInvoices', label: 'Total Invoices',    icon: FileText,      iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#ca8a04',  format: (v: number) => `${v}`,                     sub: (s: DashboardStats) => `${s.pendingInvoices} pending` },
-  { key: 'totalProducts', label: 'Inventory Items',   icon: Package,       iconBg: 'rgba(5,150,105,0.1)',  iconColor: '#059669', subColor: '#4B5563',  format: (v: number) => `${v}`,                     sub: (s: DashboardStats) => `${s.totalCategories} categories` },
-  { key: 'lowStockCount', label: 'Low Stock Alerts',  icon: AlertTriangle, iconBg: 'rgba(239,68,68,0.1)',  iconColor: '#ef4444', subColor: '#ef4444',  format: (v: number) => `${v}`,                     sub: () => 'Needs restock' },
-]
-
-// Fallback static values shown while loading or on error
-const FALLBACK: DashboardStats = {
-  totalSales: 0, totalInvoices: 0, pendingInvoices: 0,
-  totalProducts: 0, totalCategories: 0, lowStockCount: 0,
-}
+import { TrendingUp, FileText, Package, AlertTriangle } from 'lucide-react'
+import { billingApi } from '../../api/billingApi'
+import { inventoryApi } from '../../api/inventoryApi'
 
 export default function StatsCards() {
-  const [stats, setStats]   = useState<DashboardStats>(FALLBACK)
-  const [loading, setLoading] = useState(true)
+  const [totalSales, setTotalSales]       = useState(0)
+  const [totalInvoices, setTotalInvoices] = useState(0)
+  const [pendingCount, setPendingCount]   = useState(0)
+  const [inventoryCount, setInventoryCount] = useState(0)
+  const [lowStockCount, setLowStockCount] = useState(0)
+  const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
-    api.get<DashboardStats>('/v1/dashboard/stats')
-      .then(res => setStats(res.data))
-      .catch(() => {/* keep fallback */})
-      .finally(() => setLoading(false))
+    async function load() {
+      try {
+        const [invRes, prodRes, lowRes] = await Promise.all([
+          billingApi.getInvoices({ size: 500 }),
+          inventoryApi.getProducts({ size: 1 }),
+          inventoryApi.getLowStockProducts(),
+        ])
+        const invoices = invRes.data.content
+        setTotalSales(invoices.reduce((s, i) => s + i.grandTotal, 0))
+        setTotalInvoices(invRes.data.totalElements)
+        setPendingCount(invoices.filter(i => i.status === 'SENT').length)
+        setInventoryCount(prodRes.data.totalElements)
+        setLowStockCount(lowRes.data.length)
+      } catch { /* keep zeros */ }
+      finally { setLoading(false) }
+    }
+    load()
   }, [])
+
+  const CARDS = [
+    { label: 'Total Sales',      value: loading ? '…' : `₹${totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, sub: `${totalInvoices} invoices total`, icon: TrendingUp,    iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#16a34a' },
+    { label: 'Total Invoices',   value: loading ? '…' : `${totalInvoices}`,   sub: `${pendingCount} pending`,  icon: FileText,      iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#ca8a04' },
+    { label: 'Inventory Items',  value: loading ? '…' : `${inventoryCount}`,  sub: 'Active products',          icon: Package,       iconBg: 'rgba(5,150,105,0.1)',  iconColor: '#059669', subColor: '#4B5563' },
+    { label: 'Low Stock Alerts', value: loading ? '…' : `${lowStockCount}`,   sub: 'Needs restock',            icon: AlertTriangle, iconBg: 'rgba(239,68,68,0.1)',  iconColor: '#ef4444', subColor: '#ef4444' },
+  ]
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-      {CARD_META.map(({ key, label, icon: Icon, iconBg, iconColor, subColor, format, sub }) => (
-        <div key={key} style={{
+      {CARDS.map(({ label, value, sub, icon: Icon, iconBg, iconColor, subColor }) => (
+        <div key={label} style={{
           background: '#fff', borderRadius: 16, padding: '22px 24px',
           border: '1px solid #E7E9ED', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
           transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
@@ -52,20 +55,8 @@ export default function StatsCards() {
               <Icon size={20} color={iconColor} />
             </div>
           </div>
-
-          {loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 44 }}>
-              <Loader2 size={18} color="#724B68" style={{ animation: 'spin 1s linear infinite' }} />
-              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', marginBottom: 6 }}>
-                {format(stats[key as keyof DashboardStats] as number)}
-              </div>
-              <div style={{ fontSize: 12, color: subColor, fontWeight: 500 }}>{sub(stats)}</div>
-            </>
-          )}
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', marginBottom: 6 }}>{value}</div>
+          <div style={{ fontSize: 12, color: subColor, fontWeight: 500 }}>{sub}</div>
         </div>
       ))}
     </div>

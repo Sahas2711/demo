@@ -4,15 +4,6 @@ import type { Invoice } from './InvoiceDetailModal'
 import { downloadPDF } from './InvoiceDetailModal'
 import type { InvoiceResponse } from '../../api/types'
 
-const INITIAL: Invoice[] = [
-  { id: 'INV-1021', customer: 'Rahul Traders',      phone: '+91 98001 11111', address: '12, MG Road, Bengaluru', date: '24 May 2024', amount: 3200,  gst: 576,  status: 'Paid',    items: [{ name: 'Cement Bags',    qty: 5,  price: 380,  gstRate: 28 }, { name: 'Red Bricks', qty: 200, price: 8, gstRate: 5 }] },
-  { id: 'INV-1022', customer: 'Amit Hardware',       phone: '+91 98002 22222', address: '45, Ring Road, Pune',   date: '24 May 2024', amount: 1800,  gst: 324,  status: 'Pending', items: [{ name: 'PVC Pipes',       qty: 6,  price: 240,  gstRate: 18 }] },
-  { id: 'INV-1023', customer: 'Ravi Constructions',  phone: '+91 98003 33333', address: '7, NH-48, Chennai',     date: '23 May 2024', amount: 8500,  gst: 1530, status: 'Paid',    items: [{ name: 'Steel Rods',      qty: 1,  price: 6200, gstRate: 18 }, { name: 'PVC Pipes', qty: 5, price: 240, gstRate: 18 }] },
-  { id: 'INV-1024', customer: 'Sharma Builders',     phone: '+91 98004 44444', address: '3, Civil Lines, Delhi', date: '23 May 2024', amount: 4200,  gst: 756,  status: 'Pending', items: [{ name: 'Plywood Sheets',  qty: 3,  price: 1200, gstRate: 18 }] },
-  { id: 'INV-1025', customer: 'Kumar & Sons',        phone: '+91 98005 55555', address: '88, GT Road, Kolkata',  date: '22 May 2024', amount: 12000, gst: 2160, status: 'Paid',    items: [{ name: 'Cement Bags',    qty: 20, price: 380,  gstRate: 28 }, { name: 'River Sand', qty: 3, price: 1800, gstRate: 5 }] },
-  { id: 'INV-1026', customer: 'Patel Enterprises',   phone: '+91 98006 66666', address: '22, SG Highway, Ahmedabad', date: '21 May 2024', amount: 6400, gst: 1152, status: 'Paid', items: [{ name: 'Steel Rods', qty: 1, price: 6200, gstRate: 18 }] },
-]
-
 interface Props {
   invoices: Array<Invoice | InvoiceResponse>
   loading?: boolean
@@ -49,8 +40,6 @@ function Badge({ status }: { status: string }) {
   const paid = status === 'Paid'
   return <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: paid ? '#dcfce7' : '#fef9c3', color: paid ? '#16a34a' : '#ca8a04' }}>{status}</span>
 }
-
-export { INITIAL }
 
 export default function InvoiceTable({ invoices, onView }: Props) {
   const [search, setSearch] = useState('')

@@ -1,82 +1,70 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Printer, CheckCircle } from 'lucide-react'
 import StaffLayout from '../../component/staff/StaffLayout'
 import { downloadPDF } from '../../component/billing/InvoiceDetailModal'
 import type { Invoice } from '../../component/billing/InvoiceDetailModal'
+import { customerApi } from '../../api/customerApi'
+import { inventoryApi } from '../../api/inventoryApi'
+import { billingApi } from '../../api/billingApi'
+import type { CustomerResponse, ProductResponse } from '../../api/types'
 
-const CUSTOMERS = [
-  { name: 'Rahul Traders',     phone: '+91 98765 43210', address: '12, MG Road, Pune' },
-  { name: 'Amit Hardware',     phone: '+91 91234 56780', address: '45, Ring Road, Mumbai' },
-  { name: 'Ravi Constructions',phone: '+91 99887 76655', address: '7, NH-48, Chennai' },
-  { name: 'Sharma Builders',   phone: '+91 90011 22334', address: '3, Civil Lines, Delhi' },
-  { name: 'Kumar & Sons',      phone: '+91 97654 32100', address: '88, GT Road, Kolkata' },
-  { name: 'Patel Enterprises', phone: '+91 98123 45678', address: '22, SG Highway, Ahmedabad' },
-]
-
-const PRODUCTS = [
-  { name: 'Cement Bags',    price: 380,  gstRate: 28, stock: 120 },
-  { name: 'Steel Rods',     price: 6200, gstRate: 18, stock: 8   },
-  { name: 'PVC Pipes',      price: 240,  gstRate: 18, stock: 40  },
-  { name: 'Red Bricks',     price: 8,    gstRate: 5,  stock: 1500},
-  { name: 'River Sand',     price: 1800, gstRate: 5,  stock: 12  },
-  { name: 'Plywood Sheets', price: 1200, gstRate: 18, stock: 22  },
-  { name: 'TMT Steel Bars', price: 5800, gstRate: 18, stock: 6   },
-  { name: 'Portland Cement',price: 420,  gstRate: 28, stock: 240 },
-  { name: 'CPVC Fittings',  price: 180,  gstRate: 18, stock: 85  },
-  { name: 'Granite Tiles',  price: 950,  gstRate: 18, stock: 60  },
-]
-
-interface LineItem { product: string; qty: number; price: number; gstRate: number }
+interface LineItem { productId: string; product: string; qty: number; price: number; gstRate: number }
 
 const inp = (focused: boolean): React.CSSProperties => ({
   width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box',
   border: `1.5px solid ${focused ? '#724B68' : '#E7E9ED'}`,
   fontSize: 14, color: '#1F2933', background: focused ? '#fdf9fc' : '#fff',
-  outline: 'none', transition: 'border-color 0.2s, background 0.2s',
-  fontFamily: 'Poppins, Inter, sans-serif',
+  outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Poppins, Inter, sans-serif',
 })
 
 function Label({ text }: { text: string }) {
   return <label style={{ fontSize: 12, fontWeight: 600, color: '#1F2933', display: 'block', marginBottom: 5 }}>{text}</label>
 }
-
 function SectionTitle({ text }: { text: string }) {
   return <p style={{ fontSize: 12, fontWeight: 700, color: '#724B68', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{text}</p>
 }
 
 export default function StaffCreateInvoicePage() {
-  const [customer, setCustomer]   = useState('')
-  const [phone, setPhone]         = useState('')
-  const [address, setAddress]     = useState('')
-  const [gstin, setGstin]         = useState('')
-  const [items, setItems]         = useState<LineItem[]>([{ product: '', qty: 1, price: 0, gstRate: 18 }])
-  const [focused, setFocused]     = useState<string | null>(null)
-  const [success, setSuccess]     = useState(false)
+  const [customers, setCustomers]   = useState<CustomerResponse[]>([])
+  const [products, setProducts]     = useState<ProductResponse[]>([])
+  const [customerId, setCustomerId] = useState('')
+  const [customer, setCustomer]     = useState('')
+  const [phone, setPhone]           = useState('')
+  const [address, setAddress]       = useState('')
+  const [gstin, setGstin]           = useState('')
+  const [items, setItems]           = useState<LineItem[]>([{ productId: '', product: '', qty: 1, price: 0, gstRate: 18 }])
+  const [focused, setFocused]       = useState<string | null>(null)
+  const [success, setSuccess]       = useState(false)
+  const [saving, setSaving]         = useState(false)
   const [custSearch, setCustSearch] = useState('')
   const [showCustDrop, setShowCustDrop] = useState(false)
 
-  const filteredCusts = CUSTOMERS.filter(c =>
-    c.name.toLowerCase().includes(custSearch.toLowerCase())
+  useEffect(() => {
+    customerApi.getCustomers({ size: 500 }).then(r => setCustomers(r.data.content)).catch(() => {})
+    inventoryApi.getProducts({ size: 500 }).then(r => setProducts(r.data.content)).catch(() => {})
+  }, [])
+
+  const filteredCusts = customers.filter(c =>
+    c.name.toLowerCase().includes(custSearch.toLowerCase()) ||
+    c.phone.includes(custSearch)
   )
 
-  function selectCustomer(c: typeof CUSTOMERS[0]) {
-    setCustomer(c.name); setPhone(c.phone); setAddress(c.address)
-    setCustSearch(c.name); setShowCustDrop(false)
-  }
-
-  // sync customer state with search input so manual typing also enables the button
-  function handleCustSearchChange(val: string) {
-    setCustSearch(val)
-    setCustomer(val)
-    setShowCustDrop(true)
+  function selectCustomer(c: CustomerResponse) {
+    setCustomerId(c.id)
+    setCustomer(c.name)
+    setPhone(c.phone)
+    setAddress(c.address ?? '')
+    setGstin(c.gstNumber ?? '')
+    setCustSearch(c.name)
+    setShowCustDrop(false)
   }
 
   function updateItem(idx: number, field: keyof LineItem, val: string | number) {
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item
-      if (field === 'product') {
-        const found = PRODUCTS.find(p => p.name === val)
-        return { ...item, product: val as string, price: found?.price ?? 0, gstRate: found?.gstRate ?? 18 }
+      if (field === 'productId') {
+        const found = products.find(p => p.id === val)
+        return { ...item, productId: val as string, product: found?.name ?? '', price: found?.unitPrice ?? 0, gstRate: Number(found?.gstPercentage ?? 18) }
       }
       return { ...item, [field]: val }
     }))
@@ -85,11 +73,11 @@ export default function StaffCreateInvoicePage() {
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0)
   const gstTotal = items.reduce((s, i) => s + i.qty * i.price * i.gstRate / 100, 0)
   const total    = subtotal + gstTotal
-  const canGenerate = customer && items.every(i => i.product && i.qty > 0)
+  const canGenerate = !!customerId && items.every(i => i.productId && i.qty > 0)
 
   function buildInvoice(): Invoice {
     return {
-      id: `INV-${1030 + Math.floor(Math.random() * 900)}`,
+      id: `INV-${Date.now()}`,
       customer, phone, address,
       date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       amount: total, gst: gstTotal, status: 'Paid',
@@ -97,12 +85,22 @@ export default function StaffCreateInvoicePage() {
     }
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!canGenerate) return
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-    setCustomer(''); setCustSearch(''); setPhone(''); setAddress(''); setGstin('')
-    setItems([{ product: '', qty: 1, price: 0, gstRate: 18 }])
+    setSaving(true)
+    try {
+      await billingApi.createInvoice({
+        customerId,
+        interState: false,
+        items: items.map(i => ({ productId: i.productId, quantity: i.qty })),
+      })
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      setCustomerId(''); setCustomer(''); setCustSearch('')
+      setPhone(''); setAddress(''); setGstin('')
+      setItems([{ productId: '', product: '', qty: 1, price: 0, gstRate: 18 }])
+    } catch { /* toast handled by interceptor */ }
+    finally { setSaving(false) }
   }
 
   function handlePrintDownload() {
@@ -114,34 +112,34 @@ export default function StaffCreateInvoicePage() {
     <StaffLayout>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>
-            Create Invoice
-          </h1>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1F2933', fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.5px' }}>Create Invoice</h1>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: '#4B5563' }}>Generate a GST invoice for your customer.</p>
         </div>
       </div>
 
       {success && (
         <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 12, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10, color: '#16a34a', fontWeight: 600, fontSize: 14 }}>
-          <CheckCircle size={18} /> Invoice generated successfully!
+          <CheckCircle size={18} /> Invoice created successfully!
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }} className="invoice-grid">
 
-        {/* Left: Form */}
+        {/* Left */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Customer */}
           <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E7E9ED', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
             <SectionTitle text="Customer Details" />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+
+              {/* Customer search dropdown */}
               <div style={{ position: 'relative' }}>
                 <Label text="Customer Name *" />
                 <input
-                  placeholder="Search or type customer name…"
+                  placeholder="Search customer…"
                   value={custSearch}
-                  onChange={e => handleCustSearchChange(e.target.value)}
+                  onChange={e => { setCustSearch(e.target.value); setCustomer(e.target.value); setShowCustDrop(true) }}
                   onFocus={() => setShowCustDrop(true)}
                   onBlur={() => setTimeout(() => setShowCustDrop(false), 150)}
                   style={inp(focused === 'cust')}
@@ -149,22 +147,24 @@ export default function StaffCreateInvoicePage() {
                   onBlurCapture={() => setFocused(null)}
                 />
                 {showCustDrop && filteredCusts.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1.5px solid #E7E9ED', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden', marginTop: 4 }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1.5px solid #E7E9ED', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
                     {filteredCusts.map(c => (
-                      <div key={c.name} onMouseDown={() => selectCustomer(c)} style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 14, color: '#1F2933', borderBottom: '1px solid #F5F6F8' }}
+                      <div key={c.id} onMouseDown={() => selectCustomer(c)}
+                        style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 14, color: '#1F2933', borderBottom: '1px solid #F5F6F8' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#fdf9fc'}
                         onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                       >
                         <div style={{ fontWeight: 600 }}>{c.name}</div>
-                        <div style={{ fontSize: 12, color: '#4B5563' }}>{c.phone}</div>
+                        <div style={{ fontSize: 12, color: '#4B5563' }}>{c.phone}{c.gstNumber ? ` · ${c.gstNumber}` : ''}</div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+
               <div>
-                <Label text="Phone Number" />
-                <input type="tel" placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)}
+                <Label text="Phone" />
+                <input placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)}
                   style={inp(focused === 'phone')} onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)} />
               </div>
               <div>
@@ -196,15 +196,17 @@ export default function StaffCreateInvoicePage() {
                   {items.map((item, idx) => (
                     <tr key={idx} style={{ borderTop: '1px solid #F5F6F8' }}>
                       <td style={{ padding: '8px 10px', minWidth: 180 }}>
-                        <select value={item.product} onChange={e => updateItem(idx, 'product', e.target.value)}
+                        <select value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}
                           style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1.5px solid #E7E9ED', fontSize: 13, color: '#1F2933', background: '#fff', outline: 'none', fontFamily: 'Poppins, Inter, sans-serif' }}>
                           <option value="">Select product…</option>
-                          {PRODUCTS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                          {products.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} (Stock: {p.quantityAvailable})</option>
+                          ))}
                         </select>
                       </td>
                       <td style={{ padding: '8px 10px', width: 72 }}>
                         <input type="number" min={1} value={item.qty} onChange={e => updateItem(idx, 'qty', Number(e.target.value))}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1.5px solid #E7E9ED', fontSize: 13, color: '#1F2933', outline: 'none', textAlign: 'center', fontFamily: 'Poppins, Inter, sans-serif' }} />
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1.5px solid #E7E9ED', fontSize: 13, color: '#1F2933', outline: 'none', textAlign: 'center' }} />
                       </td>
                       <td style={{ padding: '8px 12px', color: '#4B5563', fontWeight: 500, whiteSpace: 'nowrap' }}>
                         {item.price > 0 ? `₹${item.price.toLocaleString()}` : '—'}
@@ -228,7 +230,7 @@ export default function StaffCreateInvoicePage() {
                 </tbody>
               </table>
             </div>
-            <button onClick={() => setItems(prev => [...prev, { product: '', qty: 1, price: 0, gstRate: 18 }])}
+            <button onClick={() => setItems(prev => [...prev, { productId: '', product: '', qty: 1, price: 0, gstRate: 18 }])}
               style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1.5px dashed #724B68', borderRadius: 8, padding: '8px 16px', color: '#724B68', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               <Plus size={15} /> Add Item
             </button>
@@ -257,18 +259,15 @@ export default function StaffCreateInvoicePage() {
             </div>
           </div>
 
-          <button onClick={handleGenerate} disabled={!canGenerate} style={{
+          <button onClick={handleGenerate} disabled={!canGenerate || saving} style={{
             width: '100%', padding: '14px', borderRadius: 12, border: 'none',
             background: canGenerate ? '#724B68' : '#E7E9ED',
             color: canGenerate ? '#fff' : '#9ca3af',
             fontSize: 15, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed',
             boxShadow: canGenerate ? '0 4px 14px rgba(114,75,104,0.3)' : 'none',
             transition: 'all 0.2s', fontFamily: 'Poppins, Inter, sans-serif',
-          }}
-            onMouseEnter={e => { if (canGenerate) { e.currentTarget.style.background = '#5A3A52'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
-            onMouseLeave={e => { e.currentTarget.style.background = canGenerate ? '#724B68' : '#E7E9ED'; e.currentTarget.style.transform = 'translateY(0)' }}
-          >
-            Generate Invoice
+          }}>
+            {saving ? 'Creating…' : 'Generate Invoice'}
           </button>
 
           <button onClick={handlePrintDownload} disabled={!canGenerate} style={{
@@ -278,14 +277,13 @@ export default function StaffCreateInvoicePage() {
             fontSize: 14, fontWeight: 600, cursor: canGenerate ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             transition: 'all 0.2s', fontFamily: 'Poppins, Inter, sans-serif',
-          }}
-            onMouseEnter={e => { if (canGenerate) e.currentTarget.style.background = '#fdf9fc' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
-          >
+          }}>
             <Printer size={16} /> Print / Download
           </button>
         </div>
       </div>
+
+      <style>{`@media (max-width: 900px) { .invoice-grid { grid-template-columns: 1fr !important; } }`}</style>
     </StaffLayout>
   )
 }

@@ -3,14 +3,28 @@ import { Download, BarChart2 } from 'lucide-react'
 import DashboardLayout from '../component/dashboard/DashboardLayout'
 import InvoiceSummaryCards from '../component/billing/InvoiceSummaryCards'
 import InvoiceTable from '../component/billing/InvoiceTable'
-import InvoiceDetailModal from '../component/billing/InvoiceDetailModal'
+import InvoiceDetailModal, { type Invoice } from '../component/billing/InvoiceDetailModal'
 import { billingApi } from '../api/billingApi'
 import type { InvoiceResponse } from '../api/types'
+
+function toInvoice(inv: InvoiceResponse): Invoice {
+  return {
+    id: inv.invoiceNumber,
+    customer: inv.customerName,
+    phone: '',
+    address: '',
+    date: new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    amount: inv.totalAmount,
+    gst: inv.cgst + inv.sgst + inv.igst,
+    status: inv.status === 'PAID' ? 'Paid' : inv.status === 'SENT' ? 'Pending' : inv.status,
+    items: inv.items.map(it => ({ name: it.productName, qty: it.quantity, price: it.unitPrice, gstRate: it.gstPercentage })),
+  }
+}
 
 export default function BillingPage() {
   const [invoices, setInvoices]       = useState<InvoiceResponse[]>([])
   const [loading, setLoading]         = useState(true)
-  const [viewInvoice, setViewInvoice] = useState<InvoiceResponse | null>(null)
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -56,7 +70,7 @@ export default function BillingPage() {
       </div>
 
       <InvoiceSummaryCards totalSales={totalSales} totalInvoices={invoices.length} totalGst={totalGst} pendingCount={pendingCount} loading={loading} />
-      <InvoiceTable invoices={invoices} loading={loading} onView={inv => setViewInvoice(inv)} />
+      <InvoiceTable invoices={invoices} loading={loading} onView={inv => setViewInvoice(toInvoice(inv))} />
 
       {/* GST Summary */}
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E7E9ED', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>

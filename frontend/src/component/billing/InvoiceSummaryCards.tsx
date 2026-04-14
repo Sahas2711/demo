@@ -1,12 +1,20 @@
 import { IndianRupee, FileText, Receipt } from 'lucide-react'
 
-const CARDS = [
-  { label: 'Total Sales',    value: '₹2,45,800', sub: '+18% this month',  icon: IndianRupee, iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#16a34a' },
-  { label: 'Total Invoices', value: '248',        sub: '12 pending',       icon: FileText,    iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#4B5563' },
-  { label: 'GST Collected',  value: '₹44,244',   sub: 'CGST + SGST + IGST', icon: Receipt,  iconBg: 'rgba(5,150,105,0.1)',  iconColor: '#059669', subColor: '#059669' },
-]
+interface Props {
+  totalSales: number
+  totalInvoices: number
+  totalGst: number
+  pendingCount: number
+  loading?: boolean
+}
 
-export default function InvoiceSummaryCards() {
+export default function InvoiceSummaryCards({ totalSales, totalInvoices, totalGst, pendingCount, loading }: Props) {
+  const CARDS = [
+    { label: 'Total Sales',    value: loading ? '…' : `₹${totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, sub: 'All invoices',          icon: IndianRupee, iconBg: 'rgba(114,75,104,0.1)', iconColor: '#724B68', subColor: '#16a34a' },
+    { label: 'Total Invoices', value: loading ? '…' : `${totalInvoices}`,                                                       sub: `${pendingCount} pending`, icon: FileText,    iconBg: 'rgba(37,99,235,0.1)',  iconColor: '#2563eb', subColor: '#4B5563' },
+    { label: 'GST Collected',  value: loading ? '…' : `₹${totalGst.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,    sub: 'CGST + SGST + IGST',    icon: Receipt,     iconBg: 'rgba(5,150,105,0.1)',  iconColor: '#059669', subColor: '#059669' },
+  ]
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 20 }}>
       {CARDS.map(({ label, value, sub, icon: Icon, iconBg, iconColor, subColor }) => (

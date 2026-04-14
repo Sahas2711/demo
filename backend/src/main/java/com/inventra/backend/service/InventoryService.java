@@ -213,7 +213,7 @@ public class InventoryService {
                 .reorderLevel(product.getReorderLevel())
                 .lowStock(product.getQuantityAvailable() <= product.getReorderLevel())
                 .active(product.isActive())
-                .category(toCategoryResponse(product.getCategory()))
+                .category(product.getCategory() != null ? toCategoryResponse(product.getCategory()) : null)
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();

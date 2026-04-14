@@ -36,7 +36,8 @@ public class CustomerService {
     @Transactional
     public CustomerResponse createCustomer(CustomerRequest request) {
         validateGstin(request.getGstNumber());
-        if (customerRepository.existsByPhone(request.getPhone().trim())) {
+        String phone = request.getPhone() != null ? request.getPhone().trim() : "";
+        if (customerRepository.existsByPhone(phone)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already exists");
         }
         if (request.getGstNumber() != null && !request.getGstNumber().isBlank()
@@ -46,7 +47,7 @@ public class CustomerService {
 
         Customer customer = Customer.builder()
             .name(inputSanitizer.sanitize(request.getName()))
-            .phone(inputSanitizer.sanitize(request.getPhone()))
+            .phone(phone)
                 .email(safeTrim(request.getEmail()))
                 .address(safeTrim(request.getAddress()))
                 .gstNumber(safeTrim(request.getGstNumber()))

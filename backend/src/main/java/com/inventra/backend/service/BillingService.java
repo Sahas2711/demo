@@ -140,6 +140,9 @@ public class BillingService {
         invoice.setItems(items);
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
+        // Reload with full entity graph to avoid LazyInitializationException
+        savedInvoice = invoiceRepository.findById(savedInvoice.getId())
+                .orElse(savedInvoice);
 
         auditLogService.log(AuditActionType.CREATE, "Invoice",
                 savedInvoice.getId().toString(), currentUser, null, "created");
