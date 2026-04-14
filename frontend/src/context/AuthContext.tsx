@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import api from '../api/axiosInstance'
+import api, { setMemoryToken } from '../api/axiosInstance'
 
 export type UserRole = 'ADMIN' | 'STAFF' | 'VIEWER'
 
@@ -32,47 +32,65 @@ export interface RegisterPayload {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-// In-memory access token
-let _memoryToken: string | null = null
-export function getMemoryToken() { return _memoryToken }
-export function setMemoryTokenFromInterceptor(token: string | null) { _memoryToken = token }
-
-function saveUser(user: AuthUser) { localStorage.setItem('user', JSON.stringify(user)) }
-function clearUser() { localStorage.removeItem('user'); localStorage.removeItem('refreshToken') }
+function save(user: AuthUser, token: string) {
+  localStorage.setItem('user', JSON.stringify(user))
+  localStorage.setItem('accessToken', token)
+}
+function clear() {
+  localStorage.removeItem('user')
+  localStorage.removeItem('accessToken')
+}
 function loadUser(): AuthUser | null {
-  try { const raw = localStorage.getItem('user'); return raw ? JSON.parse(raw) : null }
-  catch { return null }
+  try {
+    const raw = localStorage.getItem('user')
+    if (!raw) return null
+    const u = JSON.parse(raw) as AuthUser
+    if (!u.id || !u.email || !u.role) { clear(); return null }
+    return u
+  } catch { return null }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, loading: true })
 
-  useEffect(() => { setState({ user: loadUser(), loading: false }) }, [])
+  useEffect(() => {
+    const user = loadUser()
+    const token = localStorage.getItem('accessToken')
+    if (user && token) {
+      setMemoryToken(token)
+      setState({ user, loading: false })
+    } else {
+      clear()
+      setState({ user: null, loading: false })
+    }
+  }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/v1/auth/login', { email, password })
-    const { accessToken, refreshToken, user } = res.data
-    const authUser: AuthUser = { id: user.id, name: user.name, email: user.email, role: user.role as UserRole }
-    _memoryToken = accessToken
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-    saveUser(authUser)
+    const { accessToken, user } = res.data
+    const authUser: AuthUser = {
+      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
+    }
+    setMemoryToken(accessToken)
+    save(authUser, accessToken)
     setState({ user: authUser, loading: false })
   }, [])
 
   const register = useCallback(async (data: RegisterPayload) => {
     const res = await api.post('/v1/auth/register', data)
-    const { accessToken, refreshToken, user } = res.data
-    const authUser: AuthUser = { id: user.id, name: user.name, email: user.email, role: user.role as UserRole }
-    _memoryToken = accessToken
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-    saveUser(authUser)
+    const { accessToken, user } = res.data
+    const authUser: AuthUser = {
+      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
+    }
+    setMemoryToken(accessToken)
+    save(authUser, accessToken)
     setState({ user: authUser, loading: false })
   }, [])
 
   const logout = useCallback(async () => {
     try { await api.post('/v1/auth/logout') } catch { /* best-effort */ }
-    _memoryToken = null
-    clearUser()
+    setMemoryToken(null)
+    clear()
     setState({ user: null, loading: false })
   }, [])
 

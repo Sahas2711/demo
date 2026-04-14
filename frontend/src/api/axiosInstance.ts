@@ -6,11 +6,9 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Token stored here; AuthContext writes to this after login
 export let memoryToken: string | null = null;
 export function setMemoryToken(t: string | null) { memoryToken = t; }
 
-// Toast callback registered by App.tsx so interceptors can show errors
 let _showToast: ((msg: string, type?: string) => void) | null = null;
 export function registerToast(fn: (msg: string, type?: string) => void) { _showToast = fn; }
 
@@ -20,21 +18,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, clear user and redirect to login
+// Response interceptor — only redirect on 401 for non-auth routes
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const url: string = error.config?.url ?? "";
-      const isAuthRoute =
-        url.includes("/auth/login") ||
-        url.includes("/auth/register") ||
-        url.includes("/auth/refresh");
-      if (!isAuthRoute) {
-        localStorage.removeItem("user");
+    const status: number = error.response?.status;
+    const url: string = error.config?.url ?? "";
+    const isAuthRoute = url.includes("/auth/login") || url.includes("/auth/register");
+
+    if (status === 401 && !isAuthRoute) {
+      // Token is invalid/expired — clear and redirect to login
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      memoryToken = null;
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
     }
+
     return Promise.reject(error);
   }
 );

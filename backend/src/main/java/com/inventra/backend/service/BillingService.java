@@ -30,7 +30,18 @@ public class BillingService {
     private final AuditLogService auditLogService;
 
     @Transactional
-    public InvoiceResponse createInvoice(InvoiceCreateRequest request, Authentication authentication) {
+    public InvoiceResponse createInvoice(InvoiceCreateRequest request, Authentication authParam) {
+
+        // Get authentication from parameter or SecurityContextHolder
+        Authentication authentication = (authParam != null && authParam.isAuthenticated())
+                ? authParam
+                : org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
 
         // 🔹 STEP 1: Validate user
         User currentUser = userRepository.findByEmail(authentication.getName())
@@ -68,7 +79,7 @@ public class BillingService {
         // 🔥 STEP 5: LOCK + PROCESS PRODUCTS
         for (InvoiceItemCreateRequest itemRequest : request.getItems()) {
 
-            Product product = productRepository.findByIdForUpdate(itemRequest.getProductId())
+            Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "Product not found: " + itemRequest.getProductId()));
 
