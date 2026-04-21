@@ -4,6 +4,31 @@ import type { Invoice } from './InvoiceDetailModal'
 import { downloadPDF } from './InvoiceDetailModal'
 import type { InvoiceResponse } from '../../api/types'
 
+export const INITIAL: Invoice[] = [
+  {
+    id: 'INV-1021',
+    customer: 'Rahul Traders',
+    phone: '9876543210',
+    address: '12 MG Road, Bengaluru',
+    date: '01 Apr 2026',
+    amount: 1180,
+    gst: 180,
+    status: 'Paid',
+    items: [{ name: 'Ultra Cement', qty: 2, price: 500, gstRate: 18 }],
+  },
+  {
+    id: 'INV-1022',
+    customer: 'Amit Hardware',
+    phone: '9123456780',
+    address: '45 Ring Road, Pune',
+    date: '02 Apr 2026',
+    amount: 2360,
+    gst: 360,
+    status: 'Pending',
+    items: [{ name: 'Steel Rod', qty: 3, price: 600, gstRate: 18 }],
+  },
+]
+
 interface Props {
   invoices: Array<Invoice | InvoiceResponse>
   loading?: boolean

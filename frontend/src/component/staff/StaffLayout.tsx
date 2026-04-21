@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FilePlus, FileText, Users, Package,
-  LogOut, Package2, ChevronLeft, ChevronRight, Bell, Menu, User,
+  LogOut, Package2, ChevronLeft, ChevronRight, Menu, User,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
@@ -14,7 +14,7 @@ const NAV = [
   { icon: Package,         label: 'Products',        path: '/staff/products' },
 ]
 
-function StaffSidebar({ collapsed, onToggle, mobileOpen }: { collapsed: boolean; onToggle: () => void; mobileOpen: boolean }) {
+function StaffSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { pathname } = useLocation()
   const { logout } = useAuth()
   const navigate = useNavigate()
@@ -187,7 +187,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         />
       )}
       <div style={{ position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
-        <StaffSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} mobileOpen={mobileOpen} />
+        <StaffSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <StaffTopBar onMenuClick={() => setMobileOpen(!mobileOpen)} />

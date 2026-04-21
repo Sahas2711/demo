@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Filter, Loader2 } from 'lucide-react'
 import StaffLayout from '../../component/staff/StaffLayout'
-import type { Product } from '../../component/inventory/inventoryData'
+import type { ProductResponse as Product } from '../../api/types'
 import api from '../../api/axiosInstance'
 
 function StockBadge({ product }: { product: Product }) {

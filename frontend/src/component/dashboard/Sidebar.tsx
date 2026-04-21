@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Package, Users, BarChart2,
@@ -20,7 +19,7 @@ interface Props { collapsed: boolean; onToggle: () => void }
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const { pathname } = useLocation()
-  const { logout, user } = useAuth()
+  const { logout } = useAuth()
   const navigate = useNavigate()
 
   async function handleLogout(e: React.MouseEvent) {

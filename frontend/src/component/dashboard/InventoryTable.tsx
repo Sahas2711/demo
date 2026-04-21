@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import type { Product } from '../inventory/inventoryData'
+import type { ProductResponse as Product } from '../../api/types'
 import api from '../../api/axiosInstance'
 
 function Badge({ product }: { product: Product }) {
@@ -58,7 +58,7 @@ export default function InventoryTable() {
             <tbody>
               {products.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No products yet.</td></tr>
-              ) : products.map((p, i) => (
+              ) : products.map((p) => (
                 <tr key={p.id} style={{ borderTop: '1px solid #F5F6F8', transition: 'background 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#fdf9fc')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#fff')}

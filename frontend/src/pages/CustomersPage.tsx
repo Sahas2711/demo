@@ -81,7 +81,7 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <CustomerSummaryCards customers={customers} loading={loading} />
+      <CustomerSummaryCards customers={customers} />
       <CustomerTable customers={customers} loading={loading} onView={c => setViewCustomer(c)} onEdit={handleEdit} onDelete={handleDelete} />
 
       {modalOpen && (

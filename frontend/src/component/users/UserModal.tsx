@@ -13,7 +13,7 @@ interface Props {
 
 const ROLES: Role[] = ['Admin', 'Staff', 'Viewer']
 const ROLE_ICONS = { Admin: ShieldCheck, Staff: UserCheck, Viewer: EyeIcon }
-const EMPTY = { name: '', email: '', phone: '', password: '', role: 'Staff' as Role, status: 'Active' as const }
+const EMPTY: UserInput = { name: '', email: '', phone: '', password: '', role: 'Staff', status: 'Active' }
 
 export default function UserModal({ user, onSave, onClose }: Props) {
   const [form, setForm]         = useState(EMPTY)

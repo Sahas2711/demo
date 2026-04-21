@@ -43,7 +43,7 @@ describe('inventoryApi', () => {
     const dedicatedLowStock = await inventoryApi.getLowStockProducts()
 
     expect(all.data).toHaveLength(2)
-    expect(lowStock.data.every((product) => product.lowStock)).toBe(true)
+    expect(lowStock.data.every((product: { lowStock: boolean }) => product.lowStock)).toBe(true)
     expect(dedicatedLowStock.data).toHaveLength(1)
   })
 

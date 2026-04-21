@@ -4,7 +4,7 @@ import DashboardLayout from '../component/dashboard/DashboardLayout'
 import InventorySummaryCards from '../component/inventory/InventorySummaryCards'
 import InventoryTableFull from '../component/inventory/InventoryTableFull'
 import ProductModal from '../component/inventory/ProductModal'
-import type { Product, Category } from '../component/inventory/inventoryData'
+import type { ProductResponse as Product, CategoryResponse as Category } from '../api/types'
 import api from '../api/axiosInstance'
 
 export default function InventoryPage() {

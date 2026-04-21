@@ -71,7 +71,6 @@ function LineChart({ data }: { data: { label: string; sales: number }[] }) {
 
 export default function ViewerAnalyticsPage() {
   const [invoices, setInvoices]         = useState<InvoiceResponse[]>([])
-  const [products, setProducts]         = useState<ProductResponse[]>([])
   const [customerCount, setCustomerCount] = useState(0)
   const [lowStockItems, setLowStockItems] = useState<ProductResponse[]>([])
   const [loading, setLoading]           = useState(true)
@@ -79,14 +78,12 @@ export default function ViewerAnalyticsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [invRes, prodRes, custRes, lowRes] = await Promise.all([
+        const [invRes, custRes, lowRes] = await Promise.all([
           billingApi.getInvoices({ size: 500 }),
-          inventoryApi.getProducts({ size: 500 }),
           customerApi.getCustomers({ size: 1 }),
           inventoryApi.getLowStockProducts(),
         ])
         setInvoices(invRes.data.content)
-        setProducts(prodRes.data.content)
         setCustomerCount(custRes.data.totalElements)
         setLowStockItems(lowRes.data)
       } catch { /* handled by interceptor */ }

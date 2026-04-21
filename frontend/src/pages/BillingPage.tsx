@@ -70,7 +70,7 @@ export default function BillingPage() {
       </div>
 
       <InvoiceSummaryCards totalSales={totalSales} totalInvoices={invoices.length} totalGst={totalGst} pendingCount={pendingCount} loading={loading} />
-      <InvoiceTable invoices={invoices} loading={loading} onView={inv => setViewInvoice(toInvoice(inv))} />
+      <InvoiceTable invoices={invoices} loading={loading} onView={inv => setViewInvoice(toInvoice(inv as InvoiceResponse))} />
 
       {/* GST Summary */}
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E7E9ED', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>

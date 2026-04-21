@@ -27,10 +27,11 @@ import ViewerProfilePage from './pages/ViewerProfilePage'
 import StaffProfilePage from './pages/staff/StaffProfilePage'
 import AdminProfilePage from './pages/AdminProfilePage'
 import AdminSettingsPage from './pages/AdminSettingsPage'
+import type { ToastType } from './context/ToastContext'
 
 function ToastBridge() {
   const { showToast } = useToast()
-  registerToast(showToast)
+  registerToast((message: string, type?: ToastType) => showToast(message, type))
   return null
 }
 

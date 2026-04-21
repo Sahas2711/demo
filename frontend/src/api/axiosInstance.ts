@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { ToastType } from "../context/ToastContext";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -9,8 +10,7 @@ const api = axios.create({
 export let memoryToken: string | null = null;
 export function setMemoryToken(t: string | null) { memoryToken = t; }
 
-let _showToast: ((msg: string, type?: string) => void) | null = null;
-export function registerToast(fn: (msg: string, type?: string) => void) { _showToast = fn; }
+export function registerToast(_fn: (msg: string, type?: ToastType) => void) {}
 
 // Attach Bearer token on every request
 api.interceptors.request.use((config) => {

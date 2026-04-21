@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Search, Pencil, Trash2, Filter, PackagePlus } from 'lucide-react'
-import type { Product } from './inventoryData'
+import type { ProductResponse as Product } from '../../api/types'
 
 interface Props {
   products: Product[]

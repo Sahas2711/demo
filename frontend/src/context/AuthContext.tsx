@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { authApi } from '../api/authApi'
 import api, { setMemoryToken } from '../api/axiosInstance'
 
 export type UserRole = 'ADMIN' | 'STAFF' | 'VIEWER'
@@ -19,6 +20,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (data: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
+  refreshSession: () => Promise<void>
   isAuthenticated: boolean
   hasRole: (...roles: UserRole[]) => boolean
 }
@@ -36,10 +38,21 @@ function save(user: AuthUser, token: string) {
   localStorage.setItem('user', JSON.stringify(user))
   localStorage.setItem('accessToken', token)
 }
+
+function saveRefreshToken(refreshToken: string) {
+  localStorage.setItem('refreshToken', refreshToken)
+}
+
 function clear() {
   localStorage.removeItem('user')
   localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
 }
+
+export function getMemoryToken() {
+  return localStorage.getItem('accessToken')
+}
+
 function loadUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem('user')
@@ -53,9 +66,62 @@ function loadUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, loading: true })
 
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await api.post('/v1/auth/login', { email, password })
+    const { accessToken, refreshToken, user } = res.data
+    const authUser: AuthUser = {
+      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
+    }
+    setMemoryToken(accessToken)
+    save(authUser, accessToken)
+    saveRefreshToken(refreshToken)
+    setState({ user: authUser, loading: false })
+  }, [])
+
+  const register = useCallback(async (data: RegisterPayload) => {
+    const res = await api.post('/v1/auth/register', data)
+    const { accessToken, refreshToken, user } = res.data
+    const authUser: AuthUser = {
+      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
+    }
+    setMemoryToken(accessToken)
+    save(authUser, accessToken)
+    saveRefreshToken(refreshToken)
+    setState({ user: authUser, loading: false })
+  }, [])
+
+  const refreshSession = useCallback(async () => {
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (!refreshToken) {
+      return
+    }
+
+    const res = await authApi.refresh()
+    const { accessToken, refreshToken: nextRefreshToken, user } = res.data
+    const authUser: AuthUser = {
+      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
+    }
+    setMemoryToken(accessToken)
+    save(authUser, accessToken)
+    saveRefreshToken(nextRefreshToken)
+    setState({ user: authUser, loading: false })
+  }, [])
+
   useEffect(() => {
     const user = loadUser()
     const token = localStorage.getItem('accessToken')
+    const refreshToken = localStorage.getItem('refreshToken')
+
+    if (refreshToken) {
+      refreshSession()
+        .catch(() => {
+          setMemoryToken(null)
+          clear()
+          setState({ user: null, loading: false })
+        })
+      return
+    }
+
     if (user && token) {
       setMemoryToken(token)
       setState({ user, loading: false })
@@ -63,29 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clear()
       setState({ user: null, loading: false })
     }
-  }, [])
-
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await api.post('/v1/auth/login', { email, password })
-    const { accessToken, user } = res.data
-    const authUser: AuthUser = {
-      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
-    }
-    setMemoryToken(accessToken)
-    save(authUser, accessToken)
-    setState({ user: authUser, loading: false })
-  }, [])
-
-  const register = useCallback(async (data: RegisterPayload) => {
-    const res = await api.post('/v1/auth/register', data)
-    const { accessToken, user } = res.data
-    const authUser: AuthUser = {
-      id: user.id, name: user.name, email: user.email, role: user.role as UserRole,
-    }
-    setMemoryToken(accessToken)
-    save(authUser, accessToken)
-    setState({ user: authUser, loading: false })
-  }, [])
+  }, [refreshSession])
 
   const logout = useCallback(async () => {
     try { await api.post('/v1/auth/logout') } catch { /* best-effort */ }
@@ -101,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, isAuthenticated, hasRole }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refreshSession, isAuthenticated, hasRole }}>
       {children}
     </AuthContext.Provider>
   )
