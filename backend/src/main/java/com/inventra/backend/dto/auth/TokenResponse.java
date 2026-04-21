@@ -21,6 +21,46 @@ public class TokenResponse {
     private long expiresIn;
     private UserSummary user;
 
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public long getExpiresIn() {
+        return expiresIn;
+    }
+
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
+    }
+
+    public UserSummary getUser() {
+        return user;
+    }
+
+    public void setUser(UserSummary user) {
+        this.user = user;
+    }
+
     @Getter
     @Setter
     @NoArgsConstructor
@@ -31,5 +71,37 @@ public class TokenResponse {
         private String name;
         private String email;
         private UserRole role;
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public UserRole getRole() {
+            return role;
+        }
+
+        public void setRole(UserRole role) {
+            this.role = role;
+        }
     }
 }

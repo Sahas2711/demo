@@ -11,8 +11,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.logging.Logger;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,8 +23,8 @@ import com.inventra.backend.util.InputSanitizer;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class CustomerService {
+    private static final Logger log = Logger.getLogger(CustomerService.class.getName());
 
     private static final Pattern GSTIN_PATTERN = Pattern.compile("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$");
 
@@ -45,19 +45,18 @@ public class CustomerService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "GST number already exists");
         }
 
-        Customer customer = Customer.builder()
-            .name(inputSanitizer.sanitize(request.getName()))
-            .phone(phone)
-                .email(safeTrim(request.getEmail()))
-                .address(safeTrim(request.getAddress()))
-                .gstNumber(safeTrim(request.getGstNumber()))
-                .creditLimit(request.getCreditLimit() == null ? BigDecimal.ZERO : request.getCreditLimit())
-                .active(request.getActive() == null || request.getActive())
-                .build();
-    Customer saved = customerRepository.save(customer);
-    auditLogService.log(AuditActionType.CREATE, "Customer", saved.getId().toString(), null, null, "created");
-    log.info("Customer created: id={}, phone={}", saved.getId(), saved.getPhone());
-    return toResponse(saved);
+        Customer customer = new Customer();
+        customer.setName(inputSanitizer.sanitize(request.getName()));
+        customer.setPhone(phone);
+        customer.setEmail(safeTrim(request.getEmail()));
+        customer.setAddress(safeTrim(request.getAddress()));
+        customer.setGstNumber(safeTrim(request.getGstNumber()));
+        customer.setCreditLimit(request.getCreditLimit() == null ? BigDecimal.ZERO : request.getCreditLimit());
+        customer.setActive(request.getActive() == null || request.getActive());
+        Customer saved = customerRepository.save(customer);
+        auditLogService.log(AuditActionType.CREATE, "Customer", saved.getId().toString(), null, null, "created");
+        log.info("Customer created: id=" + saved.getId() + ", phone=" + saved.getPhone());
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -97,10 +96,10 @@ public class CustomerService {
         if (request.getActive() != null) {
             customer.setActive(request.getActive());
         }
-    Customer saved = customerRepository.save(customer);
-    auditLogService.log(AuditActionType.UPDATE, "Customer", saved.getId().toString(), null, null, "updated");
-    log.info("Customer updated: id={}", saved.getId());
-    return toResponse(saved);
+        Customer saved = customerRepository.save(customer);
+        auditLogService.log(AuditActionType.UPDATE, "Customer", saved.getId().toString(), null, null, "updated");
+        log.info("Customer updated: id=" + saved.getId());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -110,7 +109,7 @@ public class CustomerService {
         customer.setActive(false);
         customerRepository.save(customer);
         auditLogService.log(AuditActionType.DELETE, "Customer", customer.getId().toString(), null, null, "deactivated");
-        log.warn("Customer deactivated: id={}", customer.getId());
+        log.warning("Customer deactivated: id=" + customer.getId());
     }
 
     @Transactional(readOnly = true)
@@ -119,15 +118,17 @@ public class CustomerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
 
         return invoiceRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
-                .map(invoice -> CustomerPurchaseHistoryResponse.builder()
-                        .invoiceId(invoice.getId())
-                        .invoiceNumber(invoice.getInvoiceNumber())
-                        .invoiceDate(invoice.getCreatedAt())
-                        .totalAmount(invoice.getTotalAmount())
-                        .gstAmount(invoice.getCgst().add(invoice.getSgst()).add(invoice.getIgst()))
-                        .grandTotal(invoice.getGrandTotal())
-                        .status(invoice.getStatus().name())
-                        .build())
+                .map(invoice -> {
+                    CustomerPurchaseHistoryResponse response = new CustomerPurchaseHistoryResponse();
+                    response.setInvoiceId(invoice.getId());
+                    response.setInvoiceNumber(invoice.getInvoiceNumber());
+                    response.setInvoiceDate(invoice.getCreatedAt());
+                    response.setTotalAmount(invoice.getTotalAmount());
+                    response.setGstAmount(invoice.getCgst().add(invoice.getSgst()).add(invoice.getIgst()));
+                    response.setGrandTotal(invoice.getGrandTotal());
+                    response.setStatus(invoice.getStatus().name());
+                    return response;
+                })
                 .toList();
     }
 
@@ -150,17 +151,17 @@ public class CustomerService {
     }
 
     private CustomerResponse toResponse(Customer customer) {
-        return CustomerResponse.builder()
-                .id(customer.getId())
-                .name(customer.getName())
-                .phone(customer.getPhone())
-                .email(customer.getEmail())
-                .address(customer.getAddress())
-                .gstNumber(customer.getGstNumber())
-                .creditLimit(customer.getCreditLimit())
-                .active(customer.isActive())
-                .createdAt(customer.getCreatedAt())
-                .updatedAt(customer.getUpdatedAt())
-                .build();
+        CustomerResponse response = new CustomerResponse();
+        response.setId(customer.getId());
+        response.setName(customer.getName());
+        response.setPhone(customer.getPhone());
+        response.setEmail(customer.getEmail());
+        response.setAddress(customer.getAddress());
+        response.setGstNumber(customer.getGstNumber());
+        response.setCreditLimit(customer.getCreditLimit());
+        response.setActive(customer.isActive());
+        response.setCreatedAt(customer.getCreatedAt());
+        response.setUpdatedAt(customer.getUpdatedAt());
+        return response;
     }
 }

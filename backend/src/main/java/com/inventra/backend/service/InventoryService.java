@@ -12,8 +12,8 @@ import com.inventra.backend.repository.CategoryRepository;
 import com.inventra.backend.repository.ProductRepository;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -24,8 +24,8 @@ import com.inventra.backend.util.InputSanitizer;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class InventoryService {
+    private static final Logger log = Logger.getLogger(InventoryService.class.getName());
 
     // @Autowired
     private final ProductRepository productRepository;
@@ -43,13 +43,12 @@ public class InventoryService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Category already exists");
         }
 
-        Category category = Category.builder()
-            .name(sanitizedName)
-            .description(inputSanitizer.sanitize(request.getDescription()))
-                .build();
+        Category category = new Category();
+        category.setName(sanitizedName);
+        category.setDescription(inputSanitizer.sanitize(request.getDescription()));
         Category saved = categoryRepository.save(category);
         auditLogService.log(AuditActionType.CREATE, "Category", saved.getId().toString(), null, null, "created");
-        log.info("Category created: id={}, name={}", saved.getId(), saved.getName());
+        log.info("Category created: id=" + saved.getId() + ", name=" + saved.getName());
         return toCategoryResponse(saved);
     }
 
@@ -74,7 +73,7 @@ public class InventoryService {
         category.setDescription(inputSanitizer.sanitize(request.getDescription()));
         Category saved = categoryRepository.save(category);
         auditLogService.log(AuditActionType.UPDATE, "Category", saved.getId().toString(), null, null, "updated");
-        log.info("Category updated: id={}", saved.getId());
+        log.info("Category updated: id=" + saved.getId());
         return toCategoryResponse(saved);
     }
 
@@ -87,7 +86,7 @@ public class InventoryService {
         }
         categoryRepository.delete(category);
         auditLogService.log(AuditActionType.DELETE, "Category", category.getId().toString(), null, null, "deleted");
-        log.warn("Category deleted: id={}", category.getId());
+        log.warning("Category deleted: id=" + category.getId());
     }
 
     @Transactional
@@ -96,21 +95,20 @@ public class InventoryService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
-        Product product = Product.builder()
-            .name(inputSanitizer.sanitize(request.getName()))
-            .description(inputSanitizer.sanitize(request.getDescription()))
-            .hsnCode(inputSanitizer.sanitize(request.getHsnCode()))
-                .unitPrice(request.getUnitPrice())
-                .gstPercentage(request.getGstPercentage())
-                .quantityAvailable(request.getQuantityAvailable())
-                .reorderLevel(request.getReorderLevel())
-                .active(request.getActive() == null || request.getActive())
-                .category(category)
-                .build();
+        Product product = new Product();
+        product.setName(inputSanitizer.sanitize(request.getName()));
+        product.setDescription(inputSanitizer.sanitize(request.getDescription()));
+        product.setHsnCode(inputSanitizer.sanitize(request.getHsnCode()));
+        product.setUnitPrice(request.getUnitPrice());
+        product.setGstPercentage(request.getGstPercentage());
+        product.setQuantityAvailable(request.getQuantityAvailable());
+        product.setReorderLevel(request.getReorderLevel());
+        product.setActive(request.getActive() == null || request.getActive());
+        product.setCategory(category);
 
         Product saved = productRepository.save(product);
         auditLogService.log(AuditActionType.CREATE, "Product", saved.getId().toString(), null, null, "created");
-        log.info("Product created: id={}, name={}", saved.getId(), saved.getName());
+        log.info("Product created: id=" + saved.getId() + ", name=" + saved.getName());
         return toProductResponse(saved);
     }
 
@@ -149,7 +147,7 @@ public class InventoryService {
 
         Product saved = productRepository.save(product);
         auditLogService.log(AuditActionType.UPDATE, "Product", saved.getId().toString(), null, null, "updated");
-        log.info("Product updated: id={}", saved.getId());
+        log.info("Product updated: id=" + saved.getId());
         return toProductResponse(saved);
     }
 
@@ -160,7 +158,7 @@ public class InventoryService {
         product.setActive(false);
         productRepository.save(product);
         auditLogService.log(AuditActionType.DELETE, "Product", product.getId().toString(), null, null, "deactivated");
-        log.warn("Product deactivated: id={}", product.getId());
+        log.warning("Product deactivated: id=" + product.getId());
     }
 
     private void validateGstSlab(java.math.BigDecimal gstPercentage) {
@@ -192,7 +190,7 @@ public class InventoryService {
         }
         Product saved = productRepository.save(product);
         auditLogService.log(AuditActionType.UPDATE, "Product", saved.getId().toString(), null, null, "stock-adjusted");
-        log.info("Stock adjusted: id={}", saved.getId());
+        log.info("Stock adjusted: id=" + saved.getId());
         return toProductResponse(saved);
     }
 
@@ -202,30 +200,30 @@ public class InventoryService {
     }
 
     private ProductResponse toProductResponse(Product product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .hsnCode(product.getHsnCode())
-                .unitPrice(product.getUnitPrice())
-                .gstPercentage(product.getGstPercentage())
-                .quantityAvailable(product.getQuantityAvailable())
-                .reorderLevel(product.getReorderLevel())
-                .lowStock(product.getQuantityAvailable() <= product.getReorderLevel())
-                .active(product.isActive())
-                .category(product.getCategory() != null ? toCategoryResponse(product.getCategory()) : null)
-                .createdAt(product.getCreatedAt())
-                .updatedAt(product.getUpdatedAt())
-                .build();
+        ProductResponse response = new ProductResponse();
+        response.setId(product.getId());
+        response.setName(product.getName());
+        response.setDescription(product.getDescription());
+        response.setHsnCode(product.getHsnCode());
+        response.setUnitPrice(product.getUnitPrice());
+        response.setGstPercentage(product.getGstPercentage());
+        response.setQuantityAvailable(product.getQuantityAvailable());
+        response.setReorderLevel(product.getReorderLevel());
+        response.setLowStock(product.getQuantityAvailable() <= product.getReorderLevel());
+        response.setActive(product.isActive());
+        response.setCategory(product.getCategory() != null ? toCategoryResponse(product.getCategory()) : null);
+        response.setCreatedAt(product.getCreatedAt());
+        response.setUpdatedAt(product.getUpdatedAt());
+        return response;
     }
 
     private CategoryResponse toCategoryResponse(Category category) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .createdAt(category.getCreatedAt())
-                .updatedAt(category.getUpdatedAt())
-                .build();
+        CategoryResponse response = new CategoryResponse();
+        response.setId(category.getId());
+        response.setName(category.getName());
+        response.setDescription(category.getDescription());
+        response.setCreatedAt(category.getCreatedAt());
+        response.setUpdatedAt(category.getUpdatedAt());
+        return response;
     }
 }

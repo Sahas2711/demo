@@ -72,16 +72,15 @@ public class AuthService {
             throw new AccessDeniedException("Only ADMIN can assign elevated roles");
         }
 
-        User user = User.builder()
-                .name(sanitize(request.getName()))
-                .email(email)
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(role)
-                .active(true)
-                .failedLoginAttempts(0)
-                .accountLocked(false)
-                .tokenVersion(0)
-                .build();
+        User user = new User();
+        user.setName(sanitize(request.getName()));
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole(role);
+        user.setActive(true);
+        user.setFailedLoginAttempts(0);
+        user.setAccountLocked(false);
+        user.setTokenVersion(0);
 
         userRepository.save(user);
 
@@ -215,30 +214,30 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshTokenValue = jwtService.generateRefreshToken(user);
 
-        RefreshToken refreshToken = RefreshToken.builder()
-                .token(refreshTokenValue)
-                .user(user)
-                .deviceId(safe(deviceId))
-                .ipAddress(safe(ip))
-                .userAgent(safe(userAgent))
-                .expiresAt(jwtService.extractExpiration(refreshTokenValue))
-                .revoked(false)
-                .build();
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setToken(refreshTokenValue);
+        refreshToken.setUser(user);
+        refreshToken.setDeviceId(safe(deviceId));
+        refreshToken.setIpAddress(safe(ip));
+        refreshToken.setUserAgent(safe(userAgent));
+        refreshToken.setExpiresAt(jwtService.extractExpiration(refreshTokenValue));
+        refreshToken.setRevoked(false);
 
         refreshTokenRepository.save(refreshToken);
 
-        return TokenResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshTokenValue)
-                .tokenType("Bearer")
-                .expiresIn(jwtService.getAccessTokenExpirySeconds())
-                .user(TokenResponse.UserSummary.builder()
-                        .id(user.getId())
-                        .email(user.getEmail())
-                        .name(user.getName())
-                        .role(user.getRole())
-                        .build())
-                .build();
+        TokenResponse.UserSummary userSummary = new TokenResponse.UserSummary();
+        userSummary.setId(user.getId());
+        userSummary.setEmail(user.getEmail());
+        userSummary.setName(user.getName());
+        userSummary.setRole(user.getRole());
+
+        TokenResponse response = new TokenResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshTokenValue);
+        response.setTokenType("Bearer");
+        response.setExpiresIn(jwtService.getAccessTokenExpirySeconds());
+        response.setUser(userSummary);
+        return response;
     }
 
     // ================= HELPERS =================

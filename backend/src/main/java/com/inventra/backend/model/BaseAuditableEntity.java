@@ -19,6 +19,22 @@ public abstract class BaseAuditableEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
