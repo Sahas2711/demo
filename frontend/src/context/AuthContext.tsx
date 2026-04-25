@@ -64,7 +64,15 @@ function loadUser(): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, loading: true })
+  const storedToken = localStorage.getItem('accessToken')
+  if (storedToken) setMemoryToken(storedToken)
+
+  const [state, setState] = useState<AuthState>(() => {
+    const user = loadUser()
+    const token = localStorage.getItem('accessToken')
+    if (user && token) return { user, loading: false }
+    return { user: null, loading: false }
+  })
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/v1/auth/login', { email, password })
@@ -107,29 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: authUser, loading: false })
   }, [])
 
-  useEffect(() => {
-    const user = loadUser()
-    const token = localStorage.getItem('accessToken')
-    const refreshToken = localStorage.getItem('refreshToken')
 
-    if (refreshToken) {
-      refreshSession()
-        .catch(() => {
-          setMemoryToken(null)
-          clear()
-          setState({ user: null, loading: false })
-        })
-      return
-    }
-
-    if (user && token) {
-      setMemoryToken(token)
-      setState({ user, loading: false })
-    } else {
-      clear()
-      setState({ user: null, loading: false })
-    }
-  }, [refreshSession])
 
   const logout = useCallback(async () => {
     try { await api.post('/v1/auth/logout') } catch { /* best-effort */ }

@@ -14,7 +14,8 @@ export function registerToast(_fn: (msg: string, type?: ToastType) => void) {}
 
 // Attach Bearer token on every request
 api.interceptors.request.use((config) => {
-  if (memoryToken) config.headers.Authorization = `Bearer ${memoryToken}`;
+  const token = memoryToken ?? localStorage.getItem('accessToken')
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -24,14 +25,14 @@ api.interceptors.response.use(
   (error) => {
     const status: number = error.response?.status;
     const url: string = error.config?.url ?? "";
-    const isAuthRoute = url.includes("/auth/login") || url.includes("/auth/register");
+    const isAuthRoute = url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/refresh");
+    const hasToken = !!localStorage.getItem('accessToken');
 
-    if (status === 401 && !isAuthRoute) {
-      // Token is invalid/expired — clear and redirect to login
+    if (status === 401 && !isAuthRoute && !hasToken) {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       memoryToken = null;
-      // Only redirect if not already on login page
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }

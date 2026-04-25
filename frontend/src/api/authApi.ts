@@ -10,8 +10,12 @@ export const authApi = {
   login: (data: LoginRequest) =>
     api.post<TokenResponse>(`${BASE}/login`, data),
 
-  refresh: () =>
-    api.post<TokenResponse>(`${BASE}/refresh`),
+  refresh: () => {
+    const token = localStorage.getItem('refreshToken')
+    return api.post<TokenResponse>(`${BASE}/refresh`, null, {
+      headers: token ? { 'X-Refresh-Token': token } : {},
+    })
+  },
 
   logout: () =>
     api.post<MessageResponse>(`${BASE}/logout`),

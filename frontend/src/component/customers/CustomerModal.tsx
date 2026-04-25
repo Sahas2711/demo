@@ -10,7 +10,7 @@ interface Props {
   onClose: () => void
 }
 
-const EMPTY = { name: '', phone: '', address: '', gstNumber: '' }
+const EMPTY = { name: '', phone: '', email: '', address: '', gstNumber: '' }
 
 export default function CustomerModal({ customer, onSave, onClose }: Props) {
   const [form, setForm]       = useState(EMPTY)
@@ -18,7 +18,7 @@ export default function CustomerModal({ customer, onSave, onClose }: Props) {
   const [errors, setErrors]   = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setForm(customer ? { name: customer.name, phone: customer.phone, address: customer.address ?? '', gstNumber: customer.gstNumber ?? '' } : EMPTY)
+    setForm(customer ? { name: customer.name, phone: customer.phone, email: customer.email ?? '', address: customer.address ?? '', gstNumber: customer.gstNumber ?? '' } : EMPTY)
     setErrors({})
   }, [customer])
 
@@ -34,7 +34,15 @@ export default function CustomerModal({ customer, onSave, onClose }: Props) {
 
   function handleSave() {
     if (!validate()) return
-    onSave({ id: customer?.id, name: form.name.trim(), phone: form.phone, address: form.address.trim(), gstNumber: form.gstNumber.trim().toUpperCase() })
+    const payload: Parameters<typeof onSave>[0] = {
+      id: customer?.id,
+      name: form.name.trim(),
+      phone: form.phone,
+      address: form.address.trim() || undefined,
+      gstNumber: form.gstNumber.trim().toUpperCase() || undefined,
+    }
+    if (form.email.trim()) payload.email = form.email.trim()
+    onSave(payload)
   }
 
   const inp = (f: string, hasError: boolean): React.CSSProperties => ({

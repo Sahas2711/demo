@@ -65,7 +65,11 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () =
     if (!form.name || !form.phone) return
     setSaving(true)
     try {
-      await customerApi.createCustomer({ name: form.name, phone: form.phone, address: form.address, gstNumber: form.gstNumber, email: form.email })
+      const payload: Parameters<typeof customerApi.createCustomer>[0] = { name: form.name.trim(), phone: form.phone.trim() }
+      if (form.email.trim())     payload.email     = form.email.trim()
+      if (form.address.trim())   payload.address   = form.address.trim()
+      if (form.gstNumber.trim()) payload.gstNumber = form.gstNumber.trim().toUpperCase()
+      await customerApi.createCustomer(payload)
       onAdd()
       onClose()
     } catch { /* handled by interceptor */ }

@@ -6,6 +6,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +19,7 @@ public class AuditLogService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(AuditActionType action,
                     String entityName,
                     String entityId,
@@ -35,8 +38,8 @@ public class AuditLogService {
             .setParameter(3, entityName)
             .setParameter(4, entityId)
             .setParameter(5, performedBy != null ? performedBy.getId() : null)
-            .setParameter(6, oldValue)
-            .setParameter(7, newValue)
+            .setParameter(6, toJsonb(oldValue))
+            .setParameter(7, toJsonb(newValue))
             .setParameter(8, Instant.now())
             .setParameter(9, Instant.now())
             .executeUpdate();
@@ -45,5 +48,14 @@ public class AuditLogService {
             // NEVER break main flow
             System.out.println("Audit log failed: " + e.getMessage());
         }
+    }
+
+    private String toJsonb(String value) {
+        if (value == null) return null;
+        // wrap plain strings as JSON string literals
+        if (!value.trim().startsWith("{") && !value.trim().startsWith("[") && !value.trim().startsWith("\"")) {
+            return "\"" + value.replace("\"", "\\\"") + "\"";
+        }
+        return value;
     }
 }
