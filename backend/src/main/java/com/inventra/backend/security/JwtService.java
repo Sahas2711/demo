@@ -102,7 +102,7 @@ public class JwtService {
 
         // Issuer & Audience validation
         if (!issuer.equals(claims.getIssuer())) return false;
-        if (!audience.equals(claims.getAudience())) return false;
+        if (!claims.getAudience().contains(audience)) return false;
 
         return true;
     }
@@ -114,7 +114,7 @@ public class JwtService {
         if (isTokenExpired(token)) return false;
         if (!expectedType.equals(claims.get("tokenType"))) return false;
         if (!issuer.equals(claims.getIssuer())) return false;
-        if (!audience.equals(claims.getAudience())) return false;
+        if (!claims.getAudience().contains(audience)) return false;
 
         return true;
     }
