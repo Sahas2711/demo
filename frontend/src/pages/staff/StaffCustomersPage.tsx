@@ -53,6 +53,7 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () =
   const [form, setForm]     = useState({ name: '', phone: '', address: '', gstNumber: '', email: '' })
   const [focused, setFocused] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState<string | null>(null)
 
   const inp = (f: string): React.CSSProperties => ({
     width: '100%', padding: '10px 12px', borderRadius: 8, boxSizing: 'border-box',
@@ -64,6 +65,7 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () =
   async function handleAdd() {
     if (!form.name || !form.phone) return
     setSaving(true)
+    setError(null)
     try {
       const payload: Parameters<typeof customerApi.createCustomer>[0] = { name: form.name.trim(), phone: form.phone.trim() }
       if (form.email.trim())     payload.email     = form.email.trim()
@@ -72,7 +74,10 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () =
       await customerApi.createCustomer(payload)
       onAdd()
       onClose()
-    } catch { /* handled by interceptor */ }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || `Error ${err?.response?.status}`
+      setError(msg)
+    }
     finally { setSaving(false) }
   }
 
@@ -87,9 +92,14 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: () =
           </button>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {error && (
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#ef4444', fontWeight: 500 }}>
+              {error}
+            </div>
+          )}
           {[
             { key: 'name',      label: 'Name *',          placeholder: 'Customer / Business name' },
-            { key: 'phone',     label: 'Phone *',          placeholder: '+91 98765 43210' },
+            { key: 'phone',     label: 'Phone *',          placeholder: '10-digit number e.g. 9876543210' },
             { key: 'email',     label: 'Email',            placeholder: 'email@example.com' },
             { key: 'address',   label: 'Address',          placeholder: 'Full address' },
             { key: 'gstNumber', label: 'GSTIN (optional)', placeholder: 'e.g. 27ABCDE1234F1Z5' },

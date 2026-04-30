@@ -36,10 +36,19 @@ export default function CustomersPage() {
   }, [])
 
   async function handleSave(data: Parameters<typeof customerApi.createCustomer>[0] & { id?: string }) {
-    if (data.id) {
-      await customerApi.updateCustomer(data.id, data)
+    const { id, ...rest } = data
+    const payload: Parameters<typeof customerApi.createCustomer>[0] = {
+      name: rest.name,
+      phone: rest.phone,
+    }
+    if (rest.email?.trim())     payload.email     = rest.email.trim()
+    if (rest.address?.trim())   payload.address   = rest.address.trim()
+    if (rest.gstNumber?.trim()) payload.gstNumber = rest.gstNumber.trim().toUpperCase()
+
+    if (id) {
+      await customerApi.updateCustomer(id, payload)
     } else {
-      await customerApi.createCustomer(data)
+      await customerApi.createCustomer(payload)
     }
     await fetchCustomers()
     setModalOpen(false)
